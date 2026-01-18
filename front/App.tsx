@@ -14,6 +14,8 @@ import Cart from './pages/Cart';
 import Login from './pages/Login';
 import BestSellers from './pages/BestSellers';
 import NewArrivals from './pages/NewArrivals';
+import Dashboard from './pages/Dashboard';
+import AdminDashboard from './pages/AdminDashboard';
 
 const App: React.FC = () => {
   const [currentPage, setCurrentPage] = useState('home');
@@ -40,6 +42,8 @@ const App: React.FC = () => {
       case 'newarrivals': return <NewArrivals onNavigate={navigate} />;
       case 'login': return <Login onNavigate={navigate} type="login" />;
       case 'signup': return <Login onNavigate={navigate} type="signup" />;
+      case 'dashboard': return <Dashboard onNavigate={navigate} />;
+      case 'admin-dashboard': return <AdminDashboard onNavigate={navigate} />;
       case 'checkout': return (
         <div className="container mx-auto px-4 py-32 text-center">
           <h2 className="text-4xl font-black italic uppercase text-primary mb-4">قريباً...</h2>

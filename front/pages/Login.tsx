@@ -11,7 +11,7 @@ interface LoginProps {
 
 const Login: React.FC<LoginProps> = ({ onNavigate, type = 'login' }) => {
   const { t, language } = useLanguage();
-  const { login, signup } = useAuth();
+  const { login, signup, user } = useAuth();
   const [isLogin, setIsLogin] = useState(type === 'login');
   const [showPass, setShowPass] = useState(false);
   const [formData, setFormData] = useState({ name: '', email: '', pass: '', confirmPass: '' });
@@ -24,9 +24,31 @@ const Login: React.FC<LoginProps> = ({ onNavigate, type = 'login' }) => {
     setLoading(true);
 
     if (isLogin) {
-      const success = await login(formData.email, formData.pass);
-      if (success) onNavigate('home');
-      else setError('خطأ في البريد الإلكتروني أو كلمة المرور');
+      try {
+        const success = await login(formData.email, formData.pass);
+        if (success) {
+          // Small delay to ensure user state is updated
+          setTimeout(() => {
+            const savedUser = localStorage.getItem('user');
+            if (savedUser) {
+              const userData = JSON.parse(savedUser);
+              if (userData.role === 'admin') {
+                onNavigate('admin-dashboard');
+              } else {
+                onNavigate('dashboard');
+              }
+            } else {
+              onNavigate('home');
+            }
+          }, 100);
+        } else {
+          setError('خطأ في البريد الإلكتروني أو كلمة المرور');
+        }
+      } catch (error: any) {
+        setError(error.message || 'خطأ في البريد الإلكتروني أو كلمة المرور');
+        setLoading(false);
+        return;
+      }
     } else {
       if (formData.pass !== formData.confirmPass) {
         setError('كلمات المرور غير متطابقة');
@@ -34,8 +56,14 @@ const Login: React.FC<LoginProps> = ({ onNavigate, type = 'login' }) => {
         return;
       }
       const success = await signup(formData.name, formData.email, formData.pass);
-      if (success) onNavigate('home');
-      else setError('فشل إنشاء الحساب، يرجى التحقق من البيانات');
+      if (success) {
+        // New users are always customers, redirect to dashboard
+        setTimeout(() => {
+          onNavigate('dashboard');
+        }, 100);
+      } else {
+        setError('فشل إنشاء الحساب، يرجى التحقق من البيانات');
+      }
     }
     setLoading(false);
   };

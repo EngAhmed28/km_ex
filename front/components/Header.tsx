@@ -47,7 +47,7 @@ const Header: React.FC<HeaderProps> = ({ onNavigate }) => {
               className="flex items-center gap-2 cursor-pointer group" 
               onClick={() => onNavigate('home')}
             >
-              <div className="bg-primary text-white p-2 rounded-xl font-black text-2xl group-hover:rotate-12 transition-transform">K</div>
+              <div className="bg-primary text-white p-2 rounded-xl font-black text-2xl group-hover:rotate-12 transition-transform">KM</div>
               <div className="hidden sm:block">
                 <p className="font-extrabold text-xl leading-none">KING OF</p>
                 <p className="font-extrabold text-xl leading-none text-primary">MUSCLES</p>
@@ -103,7 +103,17 @@ const Header: React.FC<HeaderProps> = ({ onNavigate }) => {
 
               {isAuthenticated ? (
                 <div className="flex items-center gap-1">
-                  <button className="hidden sm:flex items-center gap-2 p-1.5 pr-4 hover:bg-accent rounded-2xl transition-all" title="حسابي">
+                  <button 
+                    onClick={() => {
+                      if (user?.role === 'admin') {
+                        onNavigate('admin-dashboard');
+                      } else {
+                        onNavigate('dashboard');
+                      }
+                    }}
+                    className="hidden sm:flex items-center gap-2 p-1.5 pr-4 hover:bg-accent rounded-2xl transition-all cursor-pointer" 
+                    title="حسابي"
+                  >
                     <span className="text-xs font-black text-gray-700">{user?.name}</span>
                     <div className="w-8 h-8 bg-primary/10 text-primary rounded-xl flex items-center justify-center font-black">
                       {user?.name.charAt(0)}
@@ -163,6 +173,21 @@ const Header: React.FC<HeaderProps> = ({ onNavigate }) => {
             <button onClick={() => { onNavigate('categories'); setIsMenuOpen(false); }} className="text-right border-b pb-4 border-accent hover:text-primary transition-colors">{t('categories')}</button>
             <button onClick={() => { onNavigate('bestsellers'); setIsMenuOpen(false); }} className="text-right border-b pb-4 border-accent hover:text-primary transition-colors">{t('bestSellers')}</button>
             <button onClick={() => { onNavigate('newarrivals'); setIsMenuOpen(false); }} className="text-right border-b pb-4 border-accent hover:text-primary transition-colors">{t('newArrivals')}</button>
+            {isAuthenticated && (
+              <button 
+                onClick={() => { 
+                  if (user?.role === 'admin') {
+                    onNavigate('admin-dashboard');
+                  } else {
+                    onNavigate('dashboard');
+                  }
+                  setIsMenuOpen(false); 
+                }} 
+                className="text-right border-b pb-4 border-accent hover:text-primary transition-colors"
+              >
+                حسابي / Dashboard
+              </button>
+            )}
           </div>
         </div>
       )}

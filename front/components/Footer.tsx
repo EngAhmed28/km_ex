@@ -14,7 +14,7 @@ const Footer: React.FC = () => {
           {/* Brand Info */}
           <div>
             <div className="flex items-center gap-2 mb-6">
-              <div className="bg-primary text-white p-2 rounded-lg font-black text-2xl">K</div>
+              <div className="bg-primary text-white p-2 rounded-lg font-black text-2xl">KM</div>
               <div>
                 <p className="font-extrabold text-xl leading-none">KING OF</p>
                 <p className="font-extrabold text-xl leading-none text-primary">MUSCLES</p>

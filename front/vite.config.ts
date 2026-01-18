@@ -5,7 +5,7 @@ import react from '@vitejs/plugin-react';
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, '.', '');
   return {
-    base: '/km_ex/',   // 👈 مهم جداً للـ GitHub Pages
+    base: '/',   // للتطوير المحلي - غير إلى '/km_ex/' عند النشر على GitHub Pages
     plugins: [react()],
     define: {
       'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
