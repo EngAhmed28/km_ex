@@ -5,16 +5,22 @@ import { useAuth } from '../context/AuthContext';
 import { Mail, Lock, User, Eye, EyeOff, AlertCircle } from 'lucide-react';
 
 interface LoginProps {
-  onNavigate: (page: string) => void;
+  onNavigate: (page: string, params?: any) => void;
   type?: 'login' | 'signup';
+  initialEmail?: string;
 }
 
-const Login: React.FC<LoginProps> = ({ onNavigate, type = 'login' }) => {
+const Login: React.FC<LoginProps> = ({ onNavigate, type = 'login', initialEmail }) => {
   const { t, language } = useLanguage();
   const { login, signup, user } = useAuth();
   const [isLogin, setIsLogin] = useState(type === 'login');
   const [showPass, setShowPass] = useState(false);
-  const [formData, setFormData] = useState({ name: '', email: '', pass: '', confirmPass: '' });
+  const [formData, setFormData] = useState({ 
+    name: '', 
+    email: initialEmail || '', 
+    pass: '', 
+    confirmPass: '' 
+  });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 

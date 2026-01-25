@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../context/LanguageContext';
-import { products } from '../data/mockData';
+import { productsAPI } from '../utils/api';
 import ProductCard from '../components/ProductCard';
 import { useCart } from '../context/CartContext';
-import { Sparkles, Clock, TrendingUp } from 'lucide-react';
+import { Sparkles, Clock, TrendingUp, Loader2 } from 'lucide-react';
+import { Product } from '../types';
 
 interface NewArrivalsProps {
   onNavigate: (page: string, params?: any) => void;
@@ -12,29 +13,99 @@ interface NewArrivalsProps {
 const NewArrivals: React.FC<NewArrivalsProps> = ({ onNavigate }) => {
   const { t, language } = useLanguage();
   const { addToCart } = useCart();
+  const [newArrivals, setNewArrivals] = useState<Product[]>([]);
+  const [latest, setLatest] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Simulate new arrivals - products with higher IDs or recently added
-  // In real app, you'd filter by dateAdded or isNew flag
-  const newArrivals = [...products]
-    .filter(p => {
-      // Simulate: products with ID p5, p6, p7, p8 are "new"
-      const newProductIds = ['p5', 'p6', 'p7', 'p8'];
-      return newProductIds.includes(p.id);
-    })
-    .sort((a, b) => {
-      // Sort by ID to show newest first
-      return b.id.localeCompare(a.id);
-    });
+  useEffect(() => {
+    const fetchNewArrivals = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        // Fetch all active products
+        const response = await productsAPI.getAllProducts({});
+        
+        if (response.success && response.data && response.data.products) {
+          // Format products and ensure image URLs are full URLs
+          const formattedProducts = response.data.products.map((product: any) => {
+            let imageUrl = product.image || null;
+            if (imageUrl && !imageUrl.startsWith('http') && imageUrl.startsWith('/')) {
+              imageUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${imageUrl}`;
+            }
+            return {
+              ...product,
+              image: imageUrl || ''
+            };
+          });
 
-  // Latest additions (most recent)
-  const latest = [...products]
-    .filter(p => ['p7', 'p8'].includes(p.id))
-    .sort((a, b) => b.id.localeCompare(a.id));
+          // Sort by created_at (newest first) - products added in last 30 days or top 8 newest
+          const sortedByDate = [...formattedProducts]
+            .sort((a, b) => {
+              const dateA = new Date(a.created_at || 0).getTime();
+              const dateB = new Date(b.created_at || 0).getTime();
+              return dateB - dateA;
+            });
 
-  const handleAddToCart = (e: React.MouseEvent, product: any) => {
+          // Latest additions (most recent 4)
+          const latestProducts = sortedByDate.slice(0, 4);
+          setLatest(latestProducts);
+
+          // New arrivals (top 8 newest)
+          const newProducts = sortedByDate.slice(0, 8);
+          setNewArrivals(newProducts);
+        } else {
+          setError(language === 'ar' ? 'فشل تحميل المنتجات' : 'Failed to load products');
+        }
+      } catch (err) {
+        console.error('Error fetching new arrivals:', err);
+        setError(err instanceof Error ? err.message : (language === 'ar' ? 'حدث خطأ أثناء تحميل المنتجات' : 'An error occurred while loading products'));
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchNewArrivals();
+  }, [language]);
+
+  const handleAddToCart = (e: React.MouseEvent, product: Product) => {
     e.stopPropagation();
-    addToCart(product, 1, '');
+    addToCart(product, 1, product.flavor && product.flavor.length > 0 ? product.flavor[0] : '');
   };
+
+  if (loading) {
+    return (
+      <div className="container mx-auto px-4 py-16">
+        <div className="flex justify-center items-center py-32">
+          <div className="text-center">
+            <Loader2 className="animate-spin h-16 w-16 text-primary mx-auto mb-4" />
+            <p className="text-gray-500 font-bold">
+              {language === 'ar' ? 'جاري التحميل...' : 'Loading...'}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container mx-auto px-4 py-16">
+        <div className="flex justify-center items-center py-32">
+          <div className="text-center">
+            <p className="text-red-500 font-bold mb-4">{error}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="bg-primary text-white px-6 py-3 rounded-xl font-bold hover:bg-secondary transition-all"
+            >
+              {language === 'ar' ? 'إعادة المحاولة' : 'Retry'}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto px-4 py-16">

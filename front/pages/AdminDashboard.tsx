@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { dashboardAPI } from '../utils/api';
-import { Users, ShoppingBag, Package, FolderTree, Settings, LogOut } from 'lucide-react';
+import { Users, ShoppingBag, Package, FolderTree, Settings, LogOut, TrendingUp, Clock, ArrowRight, Eye } from 'lucide-react';
 import AdminUsers from './AdminUsers';
 import AdminCategories from './AdminCategories';
 import AdminProducts from './AdminProducts';
+import AdminOrders from './AdminOrders';
 
 interface AdminDashboardProps {
   onNavigate: (page: string) => void;
@@ -19,6 +20,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) => {
   const [activeTab, setActiveTab] = useState('overview');
 
   useEffect(() => {
+    // Redirect to home if user is not admin or logged out
+    if (!user || user.role !== 'admin') {
+      onNavigate('home');
+      return;
+    }
+
     const fetchDashboardData = async () => {
       try {
         setLoading(true);
@@ -33,22 +40,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) => {
       }
     };
 
-    if (user && user.role === 'admin') {
-      fetchDashboardData();
-    }
-  }, [user]);
+    fetchDashboardData();
+  }, [user, onNavigate]);
 
   if (!user || user.role !== 'admin') {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <p className="text-xl font-bold mb-4">{language === 'ar' ? 'ليس لديك صلاحية للوصول' : 'You do not have access permission'}</p>
-          <button
-            onClick={() => onNavigate('home')}
-            className="bg-primary text-white px-6 py-3 rounded-2xl font-bold"
-          >
-            {t('home')}
-          </button>
+          <p className="text-xl font-bold mb-4">{language === 'ar' ? 'جاري التوجيه...' : 'Redirecting...'}</p>
         </div>
       </div>
     );
@@ -75,7 +74,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) => {
               <p className="text-gray-500 font-bold">{t('welcomeAdmin')}, {user.name}</p>
             </div>
             <button
-              onClick={logout}
+              onClick={() => {
+                logout();
+                onNavigate('home');
+              }}
               className="bg-red-500 text-white px-6 py-3 rounded-2xl font-bold hover:bg-red-600 transition-all flex items-center gap-2"
             >
               <LogOut size={20} />
@@ -186,10 +188,192 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) => {
 
           <div className="mt-6">
             {activeTab === 'overview' && (
-              <div className="text-center py-12">
-                <Settings size={64} className="mx-auto text-gray-400 mb-4" />
-                <p className="text-gray-500 font-bold">{language === 'ar' ? 'مرحباً في لوحة تحكم المدير' : 'Welcome to Admin Dashboard'}</p>
-                <p className="text-sm text-gray-400 mt-2">{language === 'ar' ? 'اختر قسم من الأعلى للبدء' : 'Select a section from above to get started'}</p>
+              <div className="space-y-6">
+                {/* Welcome Section */}
+                <div className="bg-gradient-to-r from-primary/10 to-primary/5 rounded-2xl p-6 border-2 border-primary/20">
+                  <div className="flex items-center gap-4">
+                    <div className="bg-primary/20 p-4 rounded-xl">
+                      <Settings className="text-primary" size={32} />
+                    </div>
+                    <div>
+                      <h2 className="text-2xl font-black italic uppercase mb-1">
+                        {language === 'ar' ? 'مرحباً في لوحة تحكم المدير' : 'Welcome to Admin Dashboard'}
+                      </h2>
+                      <p className="text-gray-600 font-bold">
+                        {language === 'ar' 
+                          ? `إجمالي الإيرادات: ${stats.totalRevenue?.toFixed(2) || '0.00'} ج.م`
+                          : `Total Revenue: ${stats.totalRevenue?.toFixed(2) || '0.00'} EGP`}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Quick Stats Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-xl p-4 border border-yellow-200">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-yellow-700 font-bold mb-1">{language === 'ar' ? 'قيد الانتظار' : 'Pending'}</p>
+                        <p className="text-2xl font-black text-yellow-800">{stats.ordersByStatus?.pending || 0}</p>
+                      </div>
+                      <Clock className="text-yellow-600" size={24} />
+                    </div>
+                  </div>
+                  <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4 border border-blue-200">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-blue-700 font-bold mb-1">{language === 'ar' ? 'قيد المعالجة' : 'Processing'}</p>
+                        <p className="text-2xl font-black text-blue-800">{stats.ordersByStatus?.processing || 0}</p>
+                      </div>
+                      <Package className="text-blue-600" size={24} />
+                    </div>
+                  </div>
+                  <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-4 border border-purple-200">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-purple-700 font-bold mb-1">{language === 'ar' ? 'تم الشحن' : 'Shipped'}</p>
+                        <p className="text-2xl font-black text-purple-800">{stats.ordersByStatus?.shipped || 0}</p>
+                      </div>
+                      <ShoppingBag className="text-purple-600" size={24} />
+                    </div>
+                  </div>
+                  <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-4 border border-green-200">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-green-700 font-bold mb-1">{language === 'ar' ? 'تم التسليم' : 'Delivered'}</p>
+                        <p className="text-2xl font-black text-green-800">{stats.ordersByStatus?.delivered || 0}</p>
+                      </div>
+                      <TrendingUp className="text-green-600" size={24} />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Recent Orders and Users */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Recent Orders */}
+                  <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-xl font-black flex items-center gap-2">
+                        <ShoppingBag className="text-primary" size={24} />
+                        {language === 'ar' ? 'آخر الطلبات' : 'Recent Orders'}
+                      </h3>
+                      <button
+                        onClick={() => setActiveTab('orders')}
+                        className="text-primary hover:text-secondary font-bold text-sm flex items-center gap-1"
+                      >
+                        {language === 'ar' ? 'عرض الكل' : 'View All'}
+                        <ArrowRight size={16} />
+                      </button>
+                    </div>
+                    {stats.recentOrders && stats.recentOrders.length > 0 ? (
+                      <div className="space-y-3">
+                        {stats.recentOrders.map((order: any) => (
+                          <div key={order.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
+                            <div>
+                              <p className="font-bold">#{order.id}</p>
+                              <p className="text-sm text-gray-500">{order.customer_name || order.customer_email || '-'}</p>
+                            </div>
+                            <div className="text-left">
+                              <p className="font-black text-primary">{order.total_amount} {language === 'ar' ? 'ج.م' : 'EGP'}</p>
+                              <span className={`text-xs px-2 py-1 rounded-lg font-bold ${
+                                order.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                                order.status === 'processing' ? 'bg-blue-100 text-blue-800' :
+                                order.status === 'shipped' ? 'bg-purple-100 text-purple-800' :
+                                order.status === 'delivered' ? 'bg-green-100 text-green-800' :
+                                'bg-gray-100 text-gray-800'
+                              }`}>
+                                {order.status === 'pending' ? (language === 'ar' ? 'قيد الانتظار' : 'Pending') :
+                                 order.status === 'processing' ? (language === 'ar' ? 'قيد المعالجة' : 'Processing') :
+                                 order.status === 'shipped' ? (language === 'ar' ? 'تم الشحن' : 'Shipped') :
+                                 order.status === 'delivered' ? (language === 'ar' ? 'تم التسليم' : 'Delivered') :
+                                 order.status}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-gray-400 text-center py-8">{language === 'ar' ? 'لا توجد طلبات حديثة' : 'No recent orders'}</p>
+                    )}
+                  </div>
+
+                  {/* Recent Users */}
+                  <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-xl font-black flex items-center gap-2">
+                        <Users className="text-primary" size={24} />
+                        {language === 'ar' ? 'آخر المستخدمين' : 'Recent Users'}
+                      </h3>
+                      <button
+                        onClick={() => setActiveTab('users')}
+                        className="text-primary hover:text-secondary font-bold text-sm flex items-center gap-1"
+                      >
+                        {language === 'ar' ? 'عرض الكل' : 'View All'}
+                        <ArrowRight size={16} />
+                      </button>
+                    </div>
+                    {stats.recentUsers && stats.recentUsers.length > 0 ? (
+                      <div className="space-y-3">
+                        {stats.recentUsers.map((user: any) => (
+                          <div key={user.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
+                            <div>
+                              <p className="font-bold">{user.name}</p>
+                              <p className="text-sm text-gray-500">{user.email}</p>
+                            </div>
+                            <div className="text-left">
+                              <span className={`text-xs px-2 py-1 rounded-lg font-bold ${
+                                user.role === 'admin' ? 'bg-red-100 text-red-800' :
+                                user.role === 'employee' ? 'bg-blue-100 text-blue-800' :
+                                'bg-green-100 text-green-800'
+                              }`}>
+                                {user.role === 'admin' ? (language === 'ar' ? 'مدير' : 'Admin') :
+                                 user.role === 'employee' ? (language === 'ar' ? 'موظف' : 'Employee') :
+                                 (language === 'ar' ? 'عميل' : 'Customer')}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-gray-400 text-center py-8">{language === 'ar' ? 'لا يوجد مستخدمين جدد' : 'No recent users'}</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Quick Actions */}
+                <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                  <h3 className="text-xl font-black mb-4">{language === 'ar' ? 'إجراءات سريعة' : 'Quick Actions'}</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <button
+                      onClick={() => setActiveTab('users')}
+                      className="bg-blue-50 hover:bg-blue-100 text-blue-700 p-4 rounded-xl font-bold transition-all flex flex-col items-center gap-2"
+                    >
+                      <Users size={24} />
+                      {language === 'ar' ? 'إدارة المستخدمين' : 'Manage Users'}
+                    </button>
+                    <button
+                      onClick={() => setActiveTab('products')}
+                      className="bg-green-50 hover:bg-green-100 text-green-700 p-4 rounded-xl font-bold transition-all flex flex-col items-center gap-2"
+                    >
+                      <Package size={24} />
+                      {language === 'ar' ? 'إدارة المنتجات' : 'Manage Products'}
+                    </button>
+                    <button
+                      onClick={() => setActiveTab('categories')}
+                      className="bg-orange-50 hover:bg-orange-100 text-orange-700 p-4 rounded-xl font-bold transition-all flex flex-col items-center gap-2"
+                    >
+                      <FolderTree size={24} />
+                      {language === 'ar' ? 'إدارة الأقسام' : 'Manage Categories'}
+                    </button>
+                    <button
+                      onClick={() => setActiveTab('orders')}
+                      className="bg-purple-50 hover:bg-purple-100 text-purple-700 p-4 rounded-xl font-bold transition-all flex flex-col items-center gap-2"
+                    >
+                      <ShoppingBag size={24} />
+                      {language === 'ar' ? 'إدارة الطلبات' : 'Manage Orders'}
+                    </button>
+                  </div>
+                </div>
               </div>
             )}
             {activeTab === 'users' && (
@@ -208,8 +392,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) => {
               </div>
             )}
             {activeTab === 'orders' && (
-              <div>
-                <p className="text-gray-500">{language === 'ar' ? 'قسم إدارة الطلبات - قريباً' : 'Order Management - Coming Soon'}</p>
+              <div className="-m-6">
+                <AdminOrders onNavigate={onNavigate} />
               </div>
             )}
           </div>

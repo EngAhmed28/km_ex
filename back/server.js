@@ -9,6 +9,7 @@ import categoryRoutes from './routes/categoryRoutes.js';
 import productRoutes from './routes/productRoutes.js';
 import productImageRoutes from './routes/productImageRoutes.js';
 import uploadRoutes from './routes/uploadRoutes.js';
+import orderRoutes from './routes/orderRoutes.js';
 import testRoutes from './routes/testRoutes.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -60,6 +61,7 @@ app.use('/api/categories', categoryRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/product-images', productImageRoutes);
 app.use('/api/upload', uploadRoutes);
+app.use('/api/orders', orderRoutes);
 
 // 404 handler
 app.use((req, res) => {

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import { apiRequest } from '../utils/api';
 import { Users, Search, Edit, Trash2, Shield, UserCheck, UserX, Plus } from 'lucide-react';
 
@@ -18,6 +19,7 @@ interface User {
 
 const AdminUsers: React.FC<AdminUsersProps> = ({ onNavigate }) => {
   const { user: currentUser } = useAuth();
+  const { language, t } = useLanguage();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -54,7 +56,7 @@ const AdminUsers: React.FC<AdminUsersProps> = ({ onNavigate }) => {
         setTotalPages(response.data.pagination.pages);
       }
     } catch (err: any) {
-      setError(err.message || 'فشل تحميل المستخدمين');
+      setError(err.message || (language === 'ar' ? 'فشل تحميل المستخدمين' : 'Failed to load users'));
     } finally {
       setLoading(false);
     }
@@ -69,10 +71,10 @@ const AdminUsers: React.FC<AdminUsersProps> = ({ onNavigate }) => {
 
       if (response.success) {
         setUsers(users.map(u => u.id === userId ? { ...u, role: newRole as any } : u));
-        alert('تم تحديث دور المستخدم بنجاح');
+        alert(language === 'ar' ? 'تم تحديث دور المستخدم بنجاح' : 'User role updated successfully');
       }
     } catch (err: any) {
-      alert(err.message || 'فشل تحديث دور المستخدم');
+      alert(err.message || (language === 'ar' ? 'فشل تحديث دور المستخدم' : 'Failed to update user role'));
     }
   };
 
@@ -95,10 +97,10 @@ const AdminUsers: React.FC<AdminUsersProps> = ({ onNavigate }) => {
         setUsers(users.map(u => u.id === editingUser.id ? { ...u, ...editForm } : u));
         setShowEditModal(false);
         setEditingUser(null);
-        alert('تم تحديث بيانات المستخدم بنجاح');
+        alert(language === 'ar' ? 'تم تحديث بيانات المستخدم بنجاح' : 'User updated successfully');
       }
     } catch (err: any) {
-      alert(err.message || 'فشل تحديث بيانات المستخدم');
+      alert(err.message || (language === 'ar' ? 'فشل تحديث بيانات المستخدم' : 'Failed to update user'));
     }
   };
 
@@ -115,18 +117,18 @@ const AdminUsers: React.FC<AdminUsersProps> = ({ onNavigate }) => {
         alert(response.message);
       }
     } catch (err: any) {
-      alert(err.message || 'فشل تغيير حالة المستخدم');
+      alert(err.message || (language === 'ar' ? 'فشل تغيير حالة المستخدم' : 'Failed to change user status'));
     }
   };
 
   const handleAddUser = async () => {
     if (!addForm.name || !addForm.email || !addForm.password) {
-      alert('يرجى ملء جميع الحقول');
+      alert(language === 'ar' ? 'يرجى ملء جميع الحقول' : 'Please fill all fields');
       return;
     }
 
     if (addForm.password.length < 6) {
-      alert('كلمة المرور يجب أن تكون 6 أحرف على الأقل');
+      alert(language === 'ar' ? 'كلمة المرور يجب أن تكون 6 أحرف على الأقل' : 'Password must be at least 6 characters');
       return;
     }
 
@@ -155,17 +157,17 @@ const AdminUsers: React.FC<AdminUsersProps> = ({ onNavigate }) => {
         setShowAddModal(false);
         setAddForm({ name: '', email: '', password: '', role: 'customer' });
         fetchUsers(); // Refresh the list
-        alert('تم إضافة المستخدم بنجاح');
+        alert(language === 'ar' ? 'تم إضافة المستخدم بنجاح' : 'User added successfully');
       } else {
-        alert('فشل إضافة المستخدم - لم يتم الحصول على معرف المستخدم');
+        alert(language === 'ar' ? 'فشل إضافة المستخدم - لم يتم الحصول على معرف المستخدم' : 'Failed to add user - User ID not received');
       }
     } catch (err: any) {
-      alert(err.message || 'فشل إضافة المستخدم');
+      alert(err.message || (language === 'ar' ? 'فشل إضافة المستخدم' : 'Failed to add user'));
     }
   };
 
   const handleDelete = async (userId: number) => {
-    if (!confirm('هل أنت متأكد من حذف هذا المستخدم؟')) return;
+    if (!confirm(language === 'ar' ? 'هل أنت متأكد من حذف هذا المستخدم؟' : 'Are you sure you want to delete this user?')) return;
 
     try {
       const response = await apiRequest(`/admin/users/${userId}`, {
@@ -174,10 +176,10 @@ const AdminUsers: React.FC<AdminUsersProps> = ({ onNavigate }) => {
 
       if (response.success) {
         setUsers(users.filter(u => u.id !== userId));
-        alert('تم حذف المستخدم بنجاح');
+        alert(language === 'ar' ? 'تم حذف المستخدم بنجاح' : 'User deleted successfully');
       }
     } catch (err: any) {
-      alert(err.message || 'فشل حذف المستخدم');
+      alert(err.message || (language === 'ar' ? 'فشل حذف المستخدم' : 'Failed to delete user'));
     }
   };
 
@@ -195,15 +197,28 @@ const AdminUsers: React.FC<AdminUsersProps> = ({ onNavigate }) => {
   };
 
   const getRoleLabel = (role: string) => {
-    switch (role) {
-      case 'admin':
-        return 'مدير';
-      case 'employee':
-        return 'موظف';
-      case 'customer':
-        return 'عميل';
-      default:
-        return role;
+    if (language === 'ar') {
+      switch (role) {
+        case 'admin':
+          return 'مدير';
+        case 'employee':
+          return 'موظف';
+        case 'customer':
+          return 'عميل';
+        default:
+          return role;
+      }
+    } else {
+      switch (role) {
+        case 'admin':
+          return 'Admin';
+        case 'employee':
+          return 'Employee';
+        case 'customer':
+          return 'Customer';
+        default:
+          return role;
+      }
     }
   };
 
@@ -212,7 +227,7 @@ const AdminUsers: React.FC<AdminUsersProps> = ({ onNavigate }) => {
   if (loading && users.length === 0) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-xl font-bold">جاري التحميل...</div>
+        <div className="text-xl font-bold">{language === 'ar' ? 'جاري التحميل...' : 'Loading...'}</div>
       </div>
     );
   }
@@ -224,8 +239,8 @@ const AdminUsers: React.FC<AdminUsersProps> = ({ onNavigate }) => {
         <div className="bg-white rounded-3xl p-6 mb-6 shadow-lg">
           <div className="flex justify-between items-center mb-6">
             <div>
-              <h1 className="text-3xl font-black mb-2">إدارة المستخدمين</h1>
-              <p className="text-gray-500 font-bold">إدارة جميع مستخدمي النظام</p>
+              <h1 className="text-3xl font-black mb-2">{t('userManagement')}</h1>
+              <p className="text-gray-500 font-bold">{t('manageAllUsers')}</p>
             </div>
             <div className="flex gap-4">
               <button
@@ -233,13 +248,13 @@ const AdminUsers: React.FC<AdminUsersProps> = ({ onNavigate }) => {
                 className="bg-primary text-white px-6 py-3 rounded-2xl font-bold hover:bg-secondary transition-all flex items-center gap-2"
               >
                 <Plus size={20} />
-                إضافة مستخدم
+                {t('addUser')}
               </button>
               <button
                 onClick={() => onNavigate('admin-dashboard')}
                 className="bg-gray-100 text-gray-700 px-6 py-3 rounded-2xl font-bold hover:bg-gray-200 transition-all"
               >
-                العودة للداشبورد
+                {t('backToDashboard')}
               </button>
             </div>
           </div>
@@ -250,7 +265,7 @@ const AdminUsers: React.FC<AdminUsersProps> = ({ onNavigate }) => {
               <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
               <input
                 type="text"
-                placeholder="ابحث عن مستخدم..."
+                placeholder={t('searchUser')}
                 value={searchTerm}
                 onChange={(e) => {
                   setSearchTerm(e.target.value);
@@ -267,14 +282,14 @@ const AdminUsers: React.FC<AdminUsersProps> = ({ onNavigate }) => {
               }}
               className="bg-gray-50 px-4 py-3 rounded-2xl outline-none border-2 border-transparent focus:border-primary font-bold"
             >
-              <option value="all">جميع الأدوار</option>
-              <option value="admin">مدير</option>
-              <option value="employee">موظف</option>
-              <option value="customer">عميل</option>
+              <option value="all">{language === 'ar' ? 'جميع الأدوار' : 'All Roles'}</option>
+              <option value="admin">{getRoleLabel('admin')}</option>
+              <option value="employee">{getRoleLabel('employee')}</option>
+              <option value="customer">{getRoleLabel('customer')}</option>
             </select>
             <div className="text-right flex items-center">
               <span className="text-gray-500 font-bold">
-                إجمالي: {users.length} مستخدم
+                {language === 'ar' ? `إجمالي: ${users.length} مستخدم` : `Total: ${users.length} users`}
               </span>
             </div>
           </div>
@@ -294,19 +309,19 @@ const AdminUsers: React.FC<AdminUsersProps> = ({ onNavigate }) => {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-4 text-right text-sm font-black text-gray-700">#</th>
-                  <th className="px-6 py-4 text-right text-sm font-black text-gray-700">الاسم</th>
-                  <th className="px-6 py-4 text-right text-sm font-black text-gray-700">البريد الإلكتروني</th>
-                  <th className="px-6 py-4 text-right text-sm font-black text-gray-700">الدور</th>
-                  <th className="px-6 py-4 text-right text-sm font-black text-gray-700">الحالة</th>
-                  <th className="px-6 py-4 text-right text-sm font-black text-gray-700">تاريخ التسجيل</th>
-                  <th className="px-6 py-4 text-right text-sm font-black text-gray-700">الإجراءات</th>
+                  <th className="px-6 py-4 text-right text-sm font-black text-gray-700">{language === 'ar' ? 'الاسم' : 'Name'}</th>
+                  <th className="px-6 py-4 text-right text-sm font-black text-gray-700">{language === 'ar' ? 'البريد الإلكتروني' : 'Email'}</th>
+                  <th className="px-6 py-4 text-right text-sm font-black text-gray-700">{language === 'ar' ? 'الدور' : 'Role'}</th>
+                  <th className="px-6 py-4 text-right text-sm font-black text-gray-700">{t('status')}</th>
+                  <th className="px-6 py-4 text-right text-sm font-black text-gray-700">{language === 'ar' ? 'تاريخ التسجيل' : 'Registration Date'}</th>
+                  <th className="px-6 py-4 text-right text-sm font-black text-gray-700">{t('actions')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {filteredUsers.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="px-6 py-12 text-center text-gray-500 font-bold">
-                      لا يوجد مستخدمين
+                      {language === 'ar' ? 'لا يوجد مستخدمين' : 'No users found'}
                     </td>
                   </tr>
                 ) : (
@@ -324,9 +339,9 @@ const AdminUsers: React.FC<AdminUsersProps> = ({ onNavigate }) => {
                             getRoleBadgeColor(user.role)
                           } ${user.id === currentUser?.id ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                         >
-                          <option value="admin">مدير</option>
-                          <option value="employee">موظف</option>
-                          <option value="customer">عميل</option>
+                          <option value="admin">{getRoleLabel('admin')}</option>
+                          <option value="employee">{getRoleLabel('employee')}</option>
+                          <option value="customer">{getRoleLabel('customer')}</option>
                         </select>
                       </td>
                       <td className="px-6 py-4">
@@ -335,18 +350,18 @@ const AdminUsers: React.FC<AdminUsersProps> = ({ onNavigate }) => {
                             ? 'bg-green-100 text-green-700' 
                             : 'bg-red-100 text-red-700'
                         }`}>
-                          {user.is_active !== false ? 'نشط' : 'معطل'}
+                          {user.is_active !== false ? t('active') : t('inactive')}
                         </span>
                       </td>
                       <td className="px-6 py-4 text-gray-600 text-sm">
-                        {new Date(user.created_at).toLocaleDateString('ar-SA')}
+                        {new Date(user.created_at).toLocaleDateString(language === 'ar' ? 'ar-SA' : 'en-US')}
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex gap-2 justify-end">
                           <button
                             onClick={() => handleEdit(user)}
                             className="bg-blue-100 text-blue-600 p-2 rounded-xl hover:bg-blue-200 transition-all"
-                            title="تعديل"
+                            title={t('edit')}
                           >
                             <Edit size={18} />
                           </button>
@@ -359,7 +374,7 @@ const AdminUsers: React.FC<AdminUsersProps> = ({ onNavigate }) => {
                                     ? 'bg-yellow-100 text-yellow-600 hover:bg-yellow-200'
                                     : 'bg-green-100 text-green-600 hover:bg-green-200'
                                 }`}
-                                title={user.is_active !== false ? 'تعطيل' : 'تفعيل'}
+                                title={user.is_active !== false ? t('deactivate') : t('activate')}
                               >
                                 {user.is_active !== false ? (
                                   <UserX size={18} />
@@ -370,7 +385,7 @@ const AdminUsers: React.FC<AdminUsersProps> = ({ onNavigate }) => {
                               <button
                                 onClick={() => handleDelete(user.id)}
                                 className="bg-red-100 text-red-600 p-2 rounded-xl hover:bg-red-200 transition-all"
-                                title="حذف"
+                                title={t('delete')}
                               >
                                 <Trash2 size={18} />
                               </button>
@@ -393,17 +408,17 @@ const AdminUsers: React.FC<AdminUsersProps> = ({ onNavigate }) => {
                 disabled={page === 1}
                 className="px-4 py-2 bg-gray-100 text-gray-700 rounded-xl font-bold hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                السابق
+                {language === 'ar' ? 'السابق' : 'Previous'}
               </button>
               <span className="text-gray-600 font-bold">
-                صفحة {page} من {totalPages}
+                {language === 'ar' ? `صفحة ${page} من ${totalPages}` : `Page ${page} of ${totalPages}`}
               </span>
               <button
                 onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                 disabled={page === totalPages}
                 className="px-4 py-2 bg-gray-100 text-gray-700 rounded-xl font-bold hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                التالي
+                {language === 'ar' ? 'التالي' : 'Next'}
               </button>
             </div>
           )}
@@ -414,7 +429,7 @@ const AdminUsers: React.FC<AdminUsersProps> = ({ onNavigate }) => {
       {showAddModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl">
-            <h2 className="text-2xl font-black mb-6">إضافة مستخدم جديد</h2>
+            <h2 className="text-2xl font-black mb-6">{language === 'ar' ? 'إضافة مستخدم جديد' : 'Add New User'}</h2>
             
             <div className="space-y-4">
               <div>
@@ -440,7 +455,7 @@ const AdminUsers: React.FC<AdminUsersProps> = ({ onNavigate }) => {
               </div>
 
               <div>
-                <label className="text-sm font-bold text-gray-700 mb-2 block">كلمة المرور</label>
+                <label className="text-sm font-bold text-gray-700 mb-2 block">{language === 'ar' ? 'كلمة المرور' : 'Password'}</label>
                 <input
                   type="password"
                   value={addForm.password}
@@ -451,15 +466,15 @@ const AdminUsers: React.FC<AdminUsersProps> = ({ onNavigate }) => {
               </div>
 
               <div>
-                <label className="text-sm font-bold text-gray-700 mb-2 block">الدور</label>
+                <label className="text-sm font-bold text-gray-700 mb-2 block">{language === 'ar' ? 'الدور' : 'Role'}</label>
                 <select
                   value={addForm.role}
                   onChange={(e) => setAddForm({ ...addForm, role: e.target.value })}
                   className="w-full bg-gray-50 px-4 py-3 rounded-2xl outline-none border-2 border-transparent focus:border-primary font-bold"
                 >
-                  <option value="customer">عميل</option>
-                  <option value="employee">موظف</option>
-                  <option value="admin">مدير</option>
+                  <option value="customer">{getRoleLabel('customer')}</option>
+                  <option value="employee">{getRoleLabel('employee')}</option>
+                  <option value="admin">{getRoleLabel('admin')}</option>
                 </select>
               </div>
             </div>
@@ -469,7 +484,7 @@ const AdminUsers: React.FC<AdminUsersProps> = ({ onNavigate }) => {
                 onClick={handleAddUser}
                 className="flex-1 bg-primary text-white py-3 rounded-2xl font-bold hover:bg-secondary transition-all"
               >
-                إضافة المستخدم
+                {language === 'ar' ? 'إضافة المستخدم' : 'Add User'}
               </button>
               <button
                 onClick={() => {
@@ -478,7 +493,7 @@ const AdminUsers: React.FC<AdminUsersProps> = ({ onNavigate }) => {
                 }}
                 className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-2xl font-bold hover:bg-gray-200 transition-all"
               >
-                إلغاء
+                {language === 'ar' ? 'إلغاء' : 'Cancel'}
               </button>
             </div>
           </div>
@@ -489,22 +504,22 @@ const AdminUsers: React.FC<AdminUsersProps> = ({ onNavigate }) => {
       {showEditModal && editingUser && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl">
-            <h2 className="text-2xl font-black mb-6">تعديل بيانات المستخدم</h2>
+            <h2 className="text-2xl font-black mb-6">{language === 'ar' ? 'تعديل بيانات المستخدم' : 'Edit User'}</h2>
             
             <div className="space-y-4">
               <div>
-                <label className="text-sm font-bold text-gray-700 mb-2 block">الاسم</label>
+                <label className="text-sm font-bold text-gray-700 mb-2 block">{language === 'ar' ? 'الاسم' : 'Name'}</label>
                 <input
                   type="text"
                   value={editForm.name}
                   onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
                   className="w-full bg-gray-50 px-4 py-3 rounded-2xl outline-none border-2 border-transparent focus:border-primary font-bold"
-                  placeholder="اسم المستخدم"
+                  placeholder={language === 'ar' ? 'اسم المستخدم' : 'User name'}
                 />
               </div>
               
               <div>
-                <label className="text-sm font-bold text-gray-700 mb-2 block">البريد الإلكتروني</label>
+                <label className="text-sm font-bold text-gray-700 mb-2 block">{language === 'ar' ? 'البريد الإلكتروني' : 'Email'}</label>
                 <input
                   type="email"
                   value={editForm.email}
@@ -520,7 +535,7 @@ const AdminUsers: React.FC<AdminUsersProps> = ({ onNavigate }) => {
                 onClick={handleUpdateUser}
                 className="flex-1 bg-primary text-white py-3 rounded-2xl font-bold hover:bg-secondary transition-all"
               >
-                حفظ التغييرات
+                {language === 'ar' ? 'حفظ التغييرات' : 'Save Changes'}
               </button>
               <button
                 onClick={() => {
@@ -529,7 +544,7 @@ const AdminUsers: React.FC<AdminUsersProps> = ({ onNavigate }) => {
                 }}
                 className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-2xl font-bold hover:bg-gray-200 transition-all"
               >
-                إلغاء
+                {language === 'ar' ? 'إلغاء' : 'Cancel'}
               </button>
             </div>
           </div>

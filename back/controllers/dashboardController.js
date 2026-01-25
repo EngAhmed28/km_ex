@@ -33,11 +33,51 @@ export const getDashboard = async (req, res) => {
       const [ordersCount] = await pool.execute('SELECT COUNT(*) as count FROM orders');
       const [categoriesCount] = await pool.execute('SELECT COUNT(*) as count FROM categories');
       
+      // Get recent orders (last 5)
+      const [recentOrders] = await pool.execute(
+        `SELECT o.id, o.total_amount, o.status, o.created_at, 
+         COALESCE(u.name, o.guest_name) as customer_name,
+         COALESCE(u.email, o.guest_email) as customer_email
+         FROM orders o
+         LEFT JOIN users u ON o.user_id = u.id
+         ORDER BY o.created_at DESC
+         LIMIT 5`
+      );
+      
+      // Get recent users (last 5)
+      const [recentUsers] = await pool.execute(
+        `SELECT id, name, email, role, created_at 
+         FROM users 
+         ORDER BY created_at DESC 
+         LIMIT 5`
+      );
+      
+      // Get orders by status
+      const [ordersByStatus] = await pool.execute(
+        `SELECT status, COUNT(*) as count 
+         FROM orders 
+         GROUP BY status`
+      );
+      
+      // Get total revenue
+      const [revenueResult] = await pool.execute(
+        `SELECT COALESCE(SUM(total_amount), 0) as total_revenue 
+         FROM orders 
+         WHERE status != 'cancelled'`
+      );
+      
       dashboardData.stats = {
         totalUsers: usersCount[0]?.count || 0,
         totalProducts: productsCount[0]?.count || 0,
         totalOrders: ordersCount[0]?.count || 0,
-        totalCategories: categoriesCount[0]?.count || 0
+        totalCategories: categoriesCount[0]?.count || 0,
+        totalRevenue: parseFloat(revenueResult[0]?.total_revenue || 0),
+        recentOrders: recentOrders,
+        recentUsers: recentUsers,
+        ordersByStatus: ordersByStatus.reduce((acc, item) => {
+          acc[item.status] = item.count;
+          return acc;
+        }, {})
       };
     } else if (user.role === 'employee') {
       // Employee dashboard - get permissions

@@ -145,3 +145,48 @@ export const productImagesAPI = {
     });
   },
 };
+
+// Orders API functions
+export const ordersAPI = {
+  createOrder: async (orderData) => {
+    return apiRequest('/orders', {
+      method: 'POST',
+      body: orderData,
+    });
+  },
+
+  getAllOrders: async (params = {}) => {
+    const queryParams = new URLSearchParams();
+    if (params.status) queryParams.append('status', params.status);
+    if (params.search) queryParams.append('search', params.search);
+    if (params.page) queryParams.append('page', params.page);
+    if (params.limit) queryParams.append('limit', params.limit);
+    if (params.include_stats) queryParams.append('include_stats', params.include_stats);
+    
+    const queryString = queryParams.toString();
+    const url = `/orders${queryString ? `?${queryString}` : ''}`;
+    
+    return apiRequest(url, {
+      method: 'GET',
+    });
+  },
+
+  getUserOrders: async () => {
+    return apiRequest('/orders/my-orders', {
+      method: 'GET',
+    });
+  },
+
+  getOrderById: async (id) => {
+    return apiRequest(`/orders/${id}`, {
+      method: 'GET',
+    });
+  },
+
+  updateOrderStatus: async (id, status) => {
+    return apiRequest(`/orders/${id}/status`, {
+      method: 'PUT',
+      body: { status },
+    });
+  },
+};

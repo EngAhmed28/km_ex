@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../context/LanguageContext';
-import { products } from '../data/mockData';
+import { productsAPI } from '../utils/api';
 import ProductCard from '../components/ProductCard';
 import { useCart } from '../context/CartContext';
-import { Trophy, Star, TrendingUp } from 'lucide-react';
+import { Trophy, Star, TrendingUp, Loader2 } from 'lucide-react';
+import { Product } from '../types';
 
 interface BestSellersProps {
   onNavigate: (page: string, params?: any) => void;
@@ -12,26 +13,102 @@ interface BestSellersProps {
 const BestSellers: React.FC<BestSellersProps> = ({ onNavigate }) => {
   const { t, language } = useLanguage();
   const { addToCart } = useCart();
+  const [bestSellers, setBestSellers] = useState<Product[]>([]);
+  const [recommended, setRecommended] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Sort products by rating and reviews count (best sellers)
-  const bestSellers = [...products]
-    .sort((a, b) => {
-      // Sort by rating first, then by reviews count
-      if (b.rating !== a.rating) return b.rating - a.rating;
-      return b.reviewsCount - a.reviewsCount;
-    })
-    .slice(0, 8); // Top 8 products
+  useEffect(() => {
+    const fetchBestSellers = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        // Fetch all active products
+        const response = await productsAPI.getAllProducts({});
+        
+        if (response.success && response.data && response.data.products) {
+          // Format products and ensure image URLs are full URLs
+          const formattedProducts = response.data.products.map((product: any) => {
+            let imageUrl = product.image || null;
+            if (imageUrl && !imageUrl.startsWith('http') && imageUrl.startsWith('/')) {
+              imageUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${imageUrl}`;
+            }
+            return {
+              ...product,
+              image: imageUrl || ''
+            };
+          });
 
-  // Recommended products (high rating with good reviews)
-  const recommended = [...products]
-    .filter(p => p.rating >= 4.5 && p.reviewsCount >= 50)
-    .sort((a, b) => b.rating - a.rating)
-    .slice(0, 8);
+          // Sort by rating and reviews count (best sellers)
+          const sorted = [...formattedProducts]
+            .sort((a, b) => {
+              // Sort by rating first, then by reviews count
+              if (b.rating !== a.rating) return b.rating - a.rating;
+              return b.reviewsCount - a.reviewsCount;
+            })
+            .slice(0, 8); // Top 8 products
+          
+          setBestSellers(sorted);
 
-  const handleAddToCart = (e: React.MouseEvent, product: any) => {
+          // Recommended products (high rating with good reviews)
+          const recommendedProducts = [...formattedProducts]
+            .filter(p => p.rating >= 4.5 && p.reviewsCount >= 10)
+            .sort((a, b) => b.rating - a.rating)
+            .slice(0, 8);
+          
+          setRecommended(recommendedProducts);
+        } else {
+          setError(language === 'ar' ? 'فشل تحميل المنتجات' : 'Failed to load products');
+        }
+      } catch (err) {
+        console.error('Error fetching best sellers:', err);
+        setError(err instanceof Error ? err.message : (language === 'ar' ? 'حدث خطأ أثناء تحميل المنتجات' : 'An error occurred while loading products'));
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchBestSellers();
+  }, [language]);
+
+  const handleAddToCart = (e: React.MouseEvent, product: Product) => {
     e.stopPropagation();
-    addToCart(product, 1, '');
+    addToCart(product, 1, product.flavor && product.flavor.length > 0 ? product.flavor[0] : '');
   };
+
+  if (loading) {
+    return (
+      <div className="container mx-auto px-4 py-16">
+        <div className="flex justify-center items-center py-32">
+          <div className="text-center">
+            <Loader2 className="animate-spin h-16 w-16 text-primary mx-auto mb-4" />
+            <p className="text-gray-500 font-bold">
+              {language === 'ar' ? 'جاري التحميل...' : 'Loading...'}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container mx-auto px-4 py-16">
+        <div className="flex justify-center items-center py-32">
+          <div className="text-center">
+            <p className="text-red-500 font-bold mb-4">{error}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="bg-primary text-white px-6 py-3 rounded-xl font-bold hover:bg-secondary transition-all"
+            >
+              {language === 'ar' ? 'إعادة المحاولة' : 'Retry'}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto px-4 py-16">

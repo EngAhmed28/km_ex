@@ -14,6 +14,7 @@ import Cart from './pages/Cart';
 import Login from './pages/Login';
 import BestSellers from './pages/BestSellers';
 import NewArrivals from './pages/NewArrivals';
+import Checkout from './pages/Checkout';
 import Dashboard from './pages/Dashboard';
 import AdminDashboard from './pages/AdminDashboard';
 
@@ -40,17 +41,11 @@ const App: React.FC = () => {
       case 'cart': return <Cart onNavigate={navigate} />;
       case 'bestsellers': return <BestSellers onNavigate={navigate} />;
       case 'newarrivals': return <NewArrivals onNavigate={navigate} />;
-      case 'login': return <Login onNavigate={navigate} type="login" />;
-      case 'signup': return <Login onNavigate={navigate} type="signup" />;
+      case 'login': return <Login onNavigate={navigate} type="login" initialEmail={pageParams.email} />;
+      case 'signup': return <Login onNavigate={navigate} type="signup" initialEmail={pageParams.email} />;
       case 'dashboard': return <Dashboard onNavigate={navigate} />;
       case 'admin-dashboard': return <AdminDashboard onNavigate={navigate} />;
-      case 'checkout': return (
-        <div className="container mx-auto px-4 py-32 text-center">
-          <h2 className="text-4xl font-black italic uppercase text-primary mb-4">قريباً...</h2>
-          <p className="text-lg font-bold text-gray-500">صفحة الدفع قيد التطوير</p>
-          <button onClick={() => navigate('home')} className="mt-8 bg-secondary text-white px-8 py-3 rounded-xl font-bold">العودة للرئيسية</button>
-        </div>
-      );
+      case 'checkout': return <Checkout onNavigate={navigate} />;
       case 'forgot-password': return (
         <div className="container mx-auto px-4 py-32 text-center">
           <h2 className="text-3xl font-black italic uppercase mb-4">استعادة كلمة المرور</h2>
