@@ -28,6 +28,17 @@ export interface Product {
     labelEn: string;
     value: string;
   }[];
+  // Additional fields
+  country_of_origin?: string;
+  expiry_date?: string;
+  manufacture_date?: string;
+  ingredients?: string[];
+  usage_instructions_ar?: string;
+  usage_instructions_en?: string;
+  safety_warnings_ar?: string;
+  safety_warnings_en?: string;
+  category_id?: number;
+  is_active?: boolean;
 }
 
 export interface Category {

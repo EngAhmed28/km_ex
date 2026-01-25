@@ -259,7 +259,16 @@ const AdminProducts: React.FC<AdminProductsProps> = ({ onNavigate }) => {
           weight: addForm.weight || null,
           flavors: addForm.flavors,
           nutrition: addForm.nutrition,
-          is_active: Boolean(addForm.is_active)
+          is_active: Boolean(addForm.is_active),
+          // Additional fields
+          country_of_origin: addForm.country_of_origin || null,
+          expiry_date: addForm.expiry_date || null,
+          manufacture_date: addForm.manufacture_date || null,
+          ingredients: addForm.ingredients,
+          usage_instructions_ar: addForm.usage_instructions_ar || null,
+          usage_instructions_en: addForm.usage_instructions_en || null,
+          safety_warnings_ar: addForm.safety_warnings_ar || null,
+          safety_warnings_en: addForm.safety_warnings_en || null
         }
       });
 
@@ -330,53 +339,75 @@ const AdminProducts: React.FC<AdminProductsProps> = ({ onNavigate }) => {
   };
 
   const handleEdit = async (product: Product) => {
-    setEditingProduct(product);
-    setEditForm({
-      name_ar: product.nameAr || '',
-      name_en: product.nameEn || '',
-      description_ar: product.descriptionAr || '',
-      description_en: product.descriptionEn || '',
-      price: product.price.toString(),
-      old_price: product.oldPrice?.toString() || '',
-      category_id: product.category_id?.toString() || '',
-      stock: product.stock.toString(),
-      rating: product.rating.toString(),
-      reviews_count: product.reviewsCount.toString(),
-      weight: product.weight || '',
-      flavors: product.flavor || [],
-      nutrition: product.nutrition || [],
-      is_active: product.is_active,
-      country_of_origin: (product as any).country_of_origin || '',
-      expiry_date: (product as any).expiry_date || '',
-      manufacture_date: (product as any).manufacture_date || '',
-      ingredients: (product as any).ingredients || [],
-      usage_instructions_ar: (product as any).usage_instructions_ar || '',
-      usage_instructions_en: (product as any).usage_instructions_en || '',
-      safety_warnings_ar: (product as any).safety_warnings_ar || '',
-      safety_warnings_en: (product as any).safety_warnings_en || ''
-    });
-    setEditImageFiles([]);
-    setEditImagePreviews([]);
-    
-    // Fetch product images
     try {
-      const imagesResponse = await productImagesAPI.getProductImages(product.id);
-      if (imagesResponse.success && imagesResponse.data && imagesResponse.data.images) {
-        const images = imagesResponse.data.images.map((img: any) => ({
-          id: img.id,
-          url: img.image_url.startsWith('http') 
-            ? img.image_url 
-            : `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${img.image_url}`,
-          is_primary: img.is_primary === 1
-        }));
-        setProductImages(images);
+      // Fetch full product details from API to ensure we have all fields including additional details
+      const response = await productsAPI.getProductById(product.id);
+      
+      if (response.success && response.data && response.data.product) {
+        const fullProduct = response.data.product;
+        
+        setEditingProduct(fullProduct);
+        
+        // Format dates for date inputs (YYYY-MM-DD format)
+        const formatDate = (dateStr: string | null | undefined) => {
+          if (!dateStr) return '';
+          // If date is in format "YYYY-MM-DD" or "YYYY-MM-DD HH:MM:SS", extract just the date part
+          return dateStr.split('T')[0].split(' ')[0];
+        };
+        
+        setEditForm({
+          name_ar: fullProduct.nameAr || '',
+          name_en: fullProduct.nameEn || '',
+          description_ar: fullProduct.descriptionAr || '',
+          description_en: fullProduct.descriptionEn || '',
+          price: fullProduct.price.toString(),
+          old_price: fullProduct.oldPrice?.toString() || '',
+          category_id: fullProduct.category_id?.toString() || '',
+          stock: fullProduct.stock.toString(),
+          rating: fullProduct.rating.toString(),
+          reviews_count: fullProduct.reviewsCount.toString(),
+          weight: fullProduct.weight || '',
+          flavors: fullProduct.flavor || [],
+          nutrition: fullProduct.nutrition || [],
+          is_active: fullProduct.is_active,
+          country_of_origin: fullProduct.country_of_origin || '',
+          expiry_date: formatDate(fullProduct.expiry_date),
+          manufacture_date: formatDate(fullProduct.manufacture_date),
+          ingredients: Array.isArray(fullProduct.ingredients) ? fullProduct.ingredients : [],
+          usage_instructions_ar: fullProduct.usage_instructions_ar || '',
+          usage_instructions_en: fullProduct.usage_instructions_en || '',
+          safety_warnings_ar: fullProduct.safety_warnings_ar || '',
+          safety_warnings_en: fullProduct.safety_warnings_en || ''
+        });
+        setEditImageFiles([]);
+        setEditImagePreviews([]);
+        
+        // Fetch product images
+        try {
+          const imagesResponse = await productImagesAPI.getProductImages(product.id);
+          if (imagesResponse.success && imagesResponse.data && imagesResponse.data.images) {
+            const images = imagesResponse.data.images.map((img: any) => ({
+              id: img.id,
+              url: img.image_url.startsWith('http') 
+                ? img.image_url 
+                : `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${img.image_url}`,
+              is_primary: img.is_primary === 1
+            }));
+            setProductImages(images);
+          }
+        } catch (err) {
+          console.error('Error fetching product images:', err);
+          setProductImages([]);
+        }
+        
+        setShowEditModal(true);
+      } else {
+        alert(language === 'ar' ? 'فشل تحميل بيانات المنتج' : 'Failed to load product data');
       }
-    } catch (err) {
-      console.error('Error fetching product images:', err);
-      setProductImages([]);
+    } catch (err: any) {
+      console.error('Error fetching product:', err);
+      alert(err.message || (language === 'ar' ? 'حدث خطأ أثناء تحميل المنتج' : 'Error loading product'));
     }
-    
-    setShowEditModal(true);
   };
 
   const handleDeleteImage = async (imageId: number) => {
@@ -922,10 +953,19 @@ const AdminProducts: React.FC<AdminProductsProps> = ({ onNavigate }) => {
                     weight: '',
                     flavors: [],
                     nutrition: [],
-                    is_active: true
+                    is_active: true,
+                    country_of_origin: '',
+                    expiry_date: '',
+                    manufacture_date: '',
+                    ingredients: [],
+                    usage_instructions_ar: '',
+                    usage_instructions_en: '',
+                    safety_warnings_ar: '',
+                    safety_warnings_en: ''
                   });
                   setAddImageFiles([]);
                   setAddImagePreviews([]);
+                  setNewIngredient('');
                   setImageErrors({ ...imageErrors, add: '' });
                 }}
                 className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-2xl font-bold hover:bg-gray-200 transition-all"
