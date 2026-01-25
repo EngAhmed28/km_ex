@@ -1,11 +1,12 @@
 
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../context/LanguageContext';
-import { products, categories } from '../data/mockData';
+import { productsAPI, categoriesAPI } from '../utils/api';
 import ProductCard from '../components/ProductCard';
 import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
 import { Filter, SlidersHorizontal, ChevronDown, Search, X, Loader2 } from 'lucide-react';
+import { Product, Category } from '../types';
 
 interface ShopProps {
   onNavigate: (page: string, params?: any) => void;
@@ -17,11 +18,95 @@ const Shop: React.FC<ShopProps> = ({ onNavigate, initialParams }) => {
   const { addToCart } = useCart();
   const { wishlist } = useWishlist();
   
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCat, setSelectedCat] = useState(initialParams?.category || 'all');
-  const [priceRange, setPriceRange] = useState(500);
+  const [priceRange, setPriceRange] = useState(10000); // Increased default to show all products
+  const [maxPrice, setMaxPrice] = useState(10000); // Track max price for slider
   const [searchQuery, setSearchQuery] = useState(initialParams?.search || '');
   const [showOnlyWishlist, setShowOnlyWishlist] = useState(initialParams?.wishlist || false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch categories
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const response = await categoriesAPI.getAllCategories();
+        if (response.success && response.data && response.data.categories) {
+          const formattedCategories = response.data.categories.map((cat: any) => ({
+            id: cat.id.toString(),
+            nameAr: cat.name || '',
+            nameEn: cat.name_en || cat.name || '',
+            image: cat.image_url || '',
+            slug: cat.slug || `category-${cat.id}`
+          }));
+          setCategories(formattedCategories);
+        }
+      } catch (err) {
+        console.error('Error fetching categories:', err);
+      }
+    };
+    fetchCategories();
+  }, []);
+
+  // Fetch products
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        
+        const params: any = {};
+        if (selectedCat !== 'all') {
+          params.category = selectedCat;
+        }
+        if (searchQuery) {
+          params.search = searchQuery;
+        }
+        // Don't filter by price initially - show all products
+        // Price filtering will be done on frontend
+        
+        const response = await productsAPI.getAllProducts(params);
+        
+        if (response.success && response.data && response.data.products) {
+          // Format products and ensure image URLs are full URLs
+          const formattedProducts = response.data.products.map((product: any) => {
+            let imageUrl = product.image || null;
+            // Convert relative path to full URL if needed
+            if (imageUrl && !imageUrl.startsWith('http') && imageUrl.startsWith('/')) {
+              imageUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${imageUrl}`;
+            }
+            return {
+              ...product,
+              image: imageUrl
+            };
+          });
+          setProducts(formattedProducts);
+          
+          // Update max price for slider based on actual product prices
+          if (formattedProducts.length > 0) {
+            const maxProductPrice = Math.max(...formattedProducts.map((p: Product) => p.price || 0));
+            const roundedMax = Math.ceil(maxProductPrice / 100) * 100; // Round up to nearest 100
+            setMaxPrice(Math.max(10000, roundedMax + 1000)); // At least 10000, or rounded max + buffer
+            // Update priceRange if it's too low
+            if (priceRange < maxProductPrice) {
+              setPriceRange(Math.max(10000, roundedMax + 1000));
+            }
+          }
+        } else {
+          setError(language === 'ar' ? 'فشل تحميل المنتجات' : 'Failed to load products');
+        }
+      } catch (err) {
+        console.error('Error fetching products:', err);
+        setError(err instanceof Error ? err.message : (language === 'ar' ? 'حدث خطأ أثناء تحميل المنتجات' : 'An error occurred while loading products'));
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchProducts();
+  }, [selectedCat, searchQuery, language]); // Removed priceRange - filtering is done on frontend
 
   useEffect(() => {
     if (initialParams?.category) setSelectedCat(initialParams.category);
@@ -30,22 +115,51 @@ const Shop: React.FC<ShopProps> = ({ onNavigate, initialParams }) => {
   }, [initialParams]);
 
   const filteredProducts = products.filter(p => {
-    const catMatch = selectedCat === 'all' || p.category === selectedCat;
     const priceMatch = p.price <= priceRange;
-    const searchMatch = !searchQuery || 
-      p.nameAr.toLowerCase().includes(searchQuery.toLowerCase()) || 
-      p.nameEn.toLowerCase().includes(searchQuery.toLowerCase());
     const wishlistMatch = !showOnlyWishlist || wishlist.includes(p.id);
     
-    return catMatch && priceMatch && searchMatch && wishlistMatch;
+    return priceMatch && wishlistMatch;
   });
 
   const clearFilters = () => {
     setSelectedCat('all');
-    setPriceRange(500);
+    setPriceRange(maxPrice);
     setSearchQuery('');
     setShowOnlyWishlist(false);
   };
+
+  if (isLoading) {
+    return (
+      <div className="container mx-auto px-4 py-12">
+        <div className="flex justify-center items-center py-32">
+          <div className="text-center">
+            <Loader2 className="animate-spin h-16 w-16 text-primary mx-auto mb-4" />
+            <p className="text-gray-500 font-bold">
+              {language === 'ar' ? 'جاري التحميل...' : 'Loading...'}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container mx-auto px-4 py-12">
+        <div className="flex justify-center items-center py-32">
+          <div className="text-center">
+            <p className="text-red-500 font-bold mb-4">{error}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="bg-primary text-white px-6 py-3 rounded-xl font-bold hover:bg-secondary transition-all"
+            >
+              {language === 'ar' ? 'إعادة المحاولة' : 'Retry'}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto px-4 py-12">
@@ -122,7 +236,7 @@ const Shop: React.FC<ShopProps> = ({ onNavigate, initialParams }) => {
               <input 
                 type="range" 
                 min="0" 
-                max="1000" 
+                max={maxPrice} 
                 step="50"
                 value={priceRange} 
                 onChange={(e) => setPriceRange(parseInt(e.target.value))}

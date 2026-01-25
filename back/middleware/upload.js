@@ -45,3 +45,40 @@ export const uploadCategoryImage = multer({
   },
   fileFilter: fileFilter
 }).single('image');
+
+// Create products upload directory if it doesn't exist
+const productsUploadsDir = path.join(__dirname, '../uploads/products');
+if (!fs.existsSync(productsUploadsDir)) {
+  fs.mkdirSync(productsUploadsDir, { recursive: true });
+}
+
+// Configure storage for products
+const productStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, productsUploadsDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const ext = path.extname(file.originalname);
+    cb(null, `product-${uniqueSuffix}${ext}`);
+  }
+});
+
+// Configure multer for products (single image)
+export const uploadProductImage = multer({
+  storage: productStorage,
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 5MB
+  },
+  fileFilter: fileFilter
+}).single('image');
+
+// Configure multer for products (multiple images)
+export const uploadProductImages = multer({
+  storage: productStorage,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB per file
+    files: 10 // Maximum 10 files
+  },
+  fileFilter: fileFilter
+}).array('images', 10); // Accept up to 10 images

@@ -5,6 +5,7 @@ import { dashboardAPI } from '../utils/api';
 import { Users, ShoppingBag, Package, FolderTree, Settings, LogOut } from 'lucide-react';
 import AdminUsers from './AdminUsers';
 import AdminCategories from './AdminCategories';
+import AdminProducts from './AdminProducts';
 
 interface AdminDashboardProps {
   onNavigate: (page: string) => void;
@@ -197,8 +198,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) => {
               </div>
             )}
             {activeTab === 'products' && (
-              <div>
-                <p className="text-gray-500">{language === 'ar' ? 'قسم إدارة المنتجات - قريباً' : 'Product Management - Coming Soon'}</p>
+              <div className="-m-6">
+                <AdminProducts onNavigate={onNavigate} />
               </div>
             )}
             {activeTab === 'categories' && (

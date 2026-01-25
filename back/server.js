@@ -6,6 +6,8 @@ import dashboardRoutes from './routes/dashboardRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
 import employeeRoutes from './routes/employeeRoutes.js';
 import categoryRoutes from './routes/categoryRoutes.js';
+import productRoutes from './routes/productRoutes.js';
+import productImageRoutes from './routes/productImageRoutes.js';
 import uploadRoutes from './routes/uploadRoutes.js';
 import testRoutes from './routes/testRoutes.js';
 import path from 'path';
@@ -55,6 +57,8 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/employee', employeeRoutes);
 app.use('/api/categories', categoryRoutes);
+app.use('/api/products', productRoutes);
+app.use('/api/product-images', productImageRoutes);
 app.use('/api/upload', uploadRoutes);
 
 // 404 handler
