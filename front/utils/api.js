@@ -69,6 +69,11 @@ export const dashboardAPI = {
       method: 'GET',
     });
   },
+  getMyDiscount: async () => {
+    return apiRequest('/dashboard/discount', {
+      method: 'GET',
+    });
+  },
 
   updateProfile: async (name, email) => {
     return apiRequest('/dashboard/profile', {
@@ -214,6 +219,60 @@ export const adminAPI = {
     return apiRequest(`/admin/employees/${employeeId}/permissions`, {
       method: 'PUT',
       body: { permissions },
+    });
+  },
+
+  // Customer Discounts
+  getCustomerDiscount: async (customerId) => {
+    return apiRequest(`/admin/customers/${customerId}/discount`, {
+      method: 'GET',
+    });
+  },
+
+  setCustomerDiscount: async (customerId, discountData) => {
+    return apiRequest(`/admin/customers/${customerId}/discount`, {
+      method: 'PUT',
+      body: discountData,
+    });
+  },
+
+  deleteCustomerDiscount: async (customerId) => {
+    return apiRequest(`/admin/customers/${customerId}/discount`, {
+      method: 'DELETE',
+    });
+  },
+
+  getAllCustomerDiscounts: async () => {
+    return apiRequest('/admin/customers/discounts', {
+      method: 'GET',
+    });
+  },
+};
+
+// Reviews API functions
+export const reviewAPI = {
+  getProductReviews: async (productId) => {
+    return apiRequest(`/reviews/products/${productId}`, {
+      method: 'GET',
+    });
+  },
+
+  getUserReview: async (productId) => {
+    return apiRequest(`/reviews/products/${productId}/my-review`, {
+      method: 'GET',
+    });
+  },
+
+  createReview: async (productId, rating, comment) => {
+    return apiRequest(`/reviews/products/${productId}`, {
+      method: 'POST',
+      body: { rating, comment },
+    });
+  },
+
+  markHelpful: async (reviewId) => {
+    return apiRequest(`/reviews/${reviewId}/helpful`, {
+      method: 'POST',
     });
   },
 };

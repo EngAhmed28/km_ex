@@ -101,11 +101,19 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ onNavigate }) => {
       setLoadingDetails(true);
       const response = await ordersAPI.getOrderById(orderId);
       
-      if (response.success && response.data) {
-        setOrderItems(response.data.order.items || []);
+      console.log('Order details response:', response);
+      
+      if (response.success && response.data && response.data.order) {
+        const items = response.data.order.items || [];
+        console.log('Order items:', items);
+        setOrderItems(items);
+      } else {
+        console.error('No order data in response:', response);
+        setOrderItems([]);
       }
     } catch (err) {
       console.error('Fetch order details error:', err);
+      setOrderItems([]);
     } finally {
       setLoadingDetails(false);
     }
@@ -588,13 +596,18 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ onNavigate }) => {
                     {orderItems.map((item, index) => (
                       <div key={index} className="bg-gray-50 rounded-xl p-4 flex justify-between items-center hover:bg-gray-100 transition-colors">
                         <div className="flex-1">
-                          <p className="font-bold text-lg">{language === 'ar' ? item.name_ar || item.name : item.name_en || item.name}</p>
+                          <p className="font-bold text-lg">
+                            {language === 'ar' 
+                              ? (item.name_ar || item.product_name_ar || item.name || item.product_name || `Product #${item.product_id}`)
+                              : (item.name_en || item.product_name_en || item.name || item.product_name || `Product #${item.product_id}`)
+                            }
+                          </p>
                           <p className="text-sm text-gray-500 mt-1">
-                            {language === 'ar' ? 'الكمية' : 'Quantity'}: {item.quantity} × {item.price} {language === 'ar' ? 'ج.م' : 'EGP'}
+                            {language === 'ar' ? 'الكمية' : 'Quantity'}: {item.quantity} × {parseFloat(item.price || 0).toFixed(2)} {language === 'ar' ? 'ج.م' : 'EGP'}
                           </p>
                         </div>
                         <p className="font-black text-xl text-primary">
-                          {item.quantity * item.price} {language === 'ar' ? 'ج.م' : 'EGP'}
+                          {(item.quantity * parseFloat(item.price || 0)).toFixed(2)} {language === 'ar' ? 'ج.م' : 'EGP'}
                         </p>
                       </div>
                     ))}

@@ -32,6 +32,9 @@ export const createOrder = async (req, res) => {
     // Get user_id from token if authenticated, otherwise null for guests
     let user_id = req.user ? (req.user.userId || req.user.id) : null;
     
+    console.log('📝 Order creation - req.user:', req.user);
+    console.log('📝 Order creation - user_id:', user_id);
+    
     // Variables for account creation
     let accountCreated = false;
     let temporaryPassword = null;
@@ -451,7 +454,22 @@ export const getOrderById = async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.user ? (req.user.userId || req.user.id) : null;
-    const userRole = req.user ? req.user.role : null;
+    
+    console.log(`🔍 Getting order #${id} - userId: ${userId}`);
+    
+    // Get user role from database if user is authenticated
+    let userRole = null;
+    if (userId) {
+      const [users] = await pool.execute(
+        'SELECT role FROM users WHERE id = ?',
+        [userId]
+      );
+      if (users.length > 0) {
+        userRole = users[0].role;
+      }
+    }
+    
+    console.log(`🔍 User role from DB: ${userRole}`);
     
     const [orders] = await pool.execute(
       `SELECT o.*, 
@@ -471,10 +489,20 @@ export const getOrderById = async (req, res) => {
     }
     
     const order = orders[0];
+    console.log(`✅ Found order #${id} - user_id: ${order.user_id}`);
     
     // Check if user has access to this order
-    // Admin can view all orders, users can only view their own
-    if (userRole !== 'admin' && userId && order.user_id !== userId) {
+    // Admin can view all orders, employees can view all orders (if they have permission)
+    // Regular users can only view their own orders
+    if (userRole === 'admin' || userRole === 'employee') {
+      // Admin and employees can view all orders
+      console.log(`✅ Access granted - user is ${userRole}`);
+    } else if (userId && order.user_id === userId) {
+      // User can view their own orders
+      console.log(`✅ Access granted - user owns this order`);
+    } else {
+      // No access
+      console.log(`❌ Access denied - userRole: ${userRole}, userId: ${userId}, order.user_id: ${order.user_id}`);
       return res.status(403).json({
         success: false,
         message: 'ليس لديك صلاحية لعرض هذا الطلب'
@@ -493,12 +521,15 @@ export const getOrderById = async (req, res) => {
       [id]
     );
     
+    console.log(`📦 Order #${id} items:`, items);
+    console.log(`📦 Order #${id} items count:`, items.length);
+    
     res.json({
       success: true,
       data: {
         order: {
           ...order,
-          items
+          items: items || []
         }
       }
     });

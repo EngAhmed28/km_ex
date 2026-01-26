@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
+import { useDiscount } from '../context/DiscountContext';
+import { calculateDiscountedPrice, isDiscountActive } from '../utils/discount';
 import { ordersAPI } from '../utils/api';
 import { User, CreditCard, MapPin, Phone, Mail, Clipboard, Check, Loader2, ArrowLeft, ArrowRight } from 'lucide-react';
 
@@ -11,8 +13,9 @@ interface CheckoutProps {
 
 const Checkout: React.FC<CheckoutProps> = ({ onNavigate }) => {
   const { t, language } = useLanguage();
-  const { cart, totalPrice, clearCart } = useCart();
+  const { cart, clearCart } = useCart();
   const { user } = useAuth();
+  const { customerDiscount } = useDiscount();
   const [loading, setLoading] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [orderId, setOrderId] = useState<number | null>(null);
@@ -22,15 +25,37 @@ const Checkout: React.FC<CheckoutProps> = ({ onNavigate }) => {
 
   // Form state
   const [formData, setFormData] = useState({
-    fullName: user?.name || '',
+    fullName: '',
     governorate: '',
     cityStreet: '',
     phone: '',
     backupPhone: '',
-    email: user?.email || '',
+    email: '',
     paymentMethod: 'cash_on_delivery',
     notes: ''
   });
+
+  // Update form data when user logs in
+  useEffect(() => {
+    if (user) {
+      setFormData(prev => ({
+        ...prev,
+        fullName: user.name || prev.fullName,
+        email: user.email || prev.email
+      }));
+    }
+  }, [user]);
+
+  // Calculate prices with discount
+  const hasDiscount = customerDiscount && isDiscountActive(customerDiscount);
+  const cartWithDiscount = cart.map(item => ({
+    ...item,
+    discountedPrice: calculateDiscountedPrice(item.price, customerDiscount)
+  }));
+  
+  const subtotal = cartWithDiscount.reduce((acc, item) => acc + item.price * item.quantity, 0);
+  const totalPrice = cartWithDiscount.reduce((acc, item) => acc + item.discountedPrice * item.quantity, 0);
+  const discountAmount = subtotal - totalPrice;
 
   useEffect(() => {
     // Redirect to cart if cart is empty
@@ -67,19 +92,17 @@ const Checkout: React.FC<CheckoutProps> = ({ onNavigate }) => {
         return;
       }
 
-      // Prepare order items
+      // Prepare order items with discounted prices
       const items = cart.map(item => ({
         product_id: parseInt(item.id),
         quantity: item.quantity,
-        price: item.price
+        price: hasDiscount ? calculateDiscountedPrice(item.price, customerDiscount) : item.price
       }));
 
       // Prepare order data
-      const orderData = {
+      const orderData: any = {
         items,
         total_amount: totalPrice,
-        guest_name: user ? null : formData.fullName,
-        guest_email: user ? null : (formData.email || null),
         phone: formData.phone,
         governorate: formData.governorate,
         city: formData.cityStreet,
@@ -87,6 +110,12 @@ const Checkout: React.FC<CheckoutProps> = ({ onNavigate }) => {
         payment_method: formData.paymentMethod,
         notes: formData.notes || null
       };
+
+      // Only include guest fields if user is not logged in
+      if (!user) {
+        orderData.guest_name = formData.fullName;
+        orderData.guest_email = formData.email || null;
+      }
 
       // Create order
       const response = await ordersAPI.createOrder(orderData);
@@ -383,29 +412,47 @@ const Checkout: React.FC<CheckoutProps> = ({ onNavigate }) => {
             <h3 className="text-2xl font-black italic uppercase mb-6">{t('yourOrder')}</h3>
             
             <div className="space-y-4 mb-6">
-              {cart.map((item) => (
-                <div key={item.id} className="flex justify-between items-center text-sm">
-                  <div className="flex-1">
-                    <p className="font-bold">{language === 'ar' ? item.nameAr : item.nameEn}</p>
-                    <p className="text-gray-400 text-xs">{t('quantity')}: {item.quantity}</p>
+              {cart.map((item) => {
+                const itemPrice = hasDiscount ? calculateDiscountedPrice(item.price, customerDiscount) : item.price;
+                return (
+                  <div key={item.id} className="flex justify-between items-center text-sm">
+                    <div className="flex-1">
+                      <p className="font-bold">{language === 'ar' ? item.nameAr : item.nameEn}</p>
+                      <p className="text-gray-400 text-xs">{t('quantity')}: {item.quantity}</p>
+                    </div>
+                    <div className="text-right ml-4">
+                      {hasDiscount && itemPrice < item.price ? (
+                        <>
+                          <p className="font-black text-primary">{itemPrice * item.quantity} {language === 'ar' ? 'ج.م' : 'EGP'}</p>
+                          <p className="text-gray-400 line-through text-xs">{item.price * item.quantity} {language === 'ar' ? 'ج.م' : 'EGP'}</p>
+                        </>
+                      ) : (
+                        <p className="font-black text-primary">{item.price * item.quantity} {language === 'ar' ? 'ج.م' : 'EGP'}</p>
+                      )}
+                    </div>
                   </div>
-                  <p className="font-black text-primary ml-4">{item.price * item.quantity} {language === 'ar' ? 'ج.م' : 'EGP'}</p>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             <div className="border-t border-white/10 pt-4 space-y-3 mb-6">
               <div className="flex justify-between items-center text-gray-400 font-bold">
                 <span>{t('subtotal')}:</span>
-                <span className="text-white">{totalPrice} {language === 'ar' ? 'ج.م' : 'EGP'}</span>
+                <span className="text-white">{subtotal.toFixed(2)} {language === 'ar' ? 'ج.م' : 'EGP'}</span>
               </div>
+              {hasDiscount && discountAmount > 0 && (
+                <div className="flex justify-between items-center text-green-400 font-bold">
+                  <span>{language === 'ar' ? `خصم ${customerDiscount?.discount_percentage}%` : `${customerDiscount?.discount_percentage}% Discount`}:</span>
+                  <span className="text-green-400">-{discountAmount.toFixed(2)} {language === 'ar' ? 'ج.م' : 'EGP'}</span>
+                </div>
+              )}
               <div className="flex justify-between items-center text-gray-400 font-bold">
                 <span>{t('shipping')}:</span>
                 <span className="text-green-400">{t('free')}</span>
               </div>
               <div className="border-t border-white/10 pt-3 flex justify-between items-center">
                 <span className="text-xl font-black uppercase italic">{t('total')}:</span>
-                <span className="text-3xl font-black text-primary italic">{totalPrice} {language === 'ar' ? 'ج.م' : 'EGP'}</span>
+                <span className="text-3xl font-black text-primary italic">{totalPrice.toFixed(2)} {language === 'ar' ? 'ج.م' : 'EGP'}</span>
               </div>
             </div>
           </div>

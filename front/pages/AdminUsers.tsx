@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { apiRequest, adminAPI, dashboardAPI } from '../utils/api';
-import { Users, Search, Edit, Trash2, Shield, UserCheck, UserX, Plus, Settings, X } from 'lucide-react';
+import { Users, Search, Edit, Trash2, Shield, UserCheck, UserX, Plus, Settings, X, Percent } from 'lucide-react';
 
 interface AdminUsersProps {
   onNavigate: (page: string) => void;
@@ -46,6 +46,16 @@ const AdminUsers: React.FC<AdminUsersProps> = ({ onNavigate }) => {
   const [canCreate, setCanCreate] = useState(false);
   const [canEdit, setCanEdit] = useState(false);
   const [canDelete, setCanDelete] = useState(false);
+  const [showDiscountModal, setShowDiscountModal] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState<User | null>(null);
+  const [customerDiscount, setCustomerDiscount] = useState<any>(null);
+  const [discountForm, setDiscountForm] = useState({
+    discount_percentage: '',
+    start_date: '',
+    end_date: '',
+    is_active: true
+  });
+  const [loadingDiscount, setLoadingDiscount] = useState(false);
 
   useEffect(() => {
     checkPermissions();
@@ -347,6 +357,105 @@ const AdminUsers: React.FC<AdminUsersProps> = ({ onNavigate }) => {
     );
   };
 
+  const handleOpenDiscount = async (user: User) => {
+    if (user.role !== 'customer') {
+      alert(language === 'ar' ? 'يمكن إدارة الخصومات للعملاء فقط' : 'Discounts can only be managed for customers');
+      return;
+    }
+    
+    setSelectedCustomer(user);
+    setShowDiscountModal(true);
+    setLoadingDiscount(true);
+    
+    try {
+      const response = await adminAPI.getCustomerDiscount(user.id.toString());
+      if (response.success && response.data && response.data.discount) {
+        const discount = response.data.discount;
+        setCustomerDiscount(discount);
+        setDiscountForm({
+          discount_percentage: discount.discount_percentage.toString(),
+          start_date: discount.start_date.split('T')[0],
+          end_date: discount.end_date.split('T')[0],
+          is_active: discount.is_active === 1 || discount.is_active === true
+        });
+      } else {
+        setCustomerDiscount(null);
+        setDiscountForm({
+          discount_percentage: '',
+          start_date: '',
+          end_date: '',
+          is_active: true
+        });
+      }
+    } catch (err: any) {
+      alert(err.message || (language === 'ar' ? 'فشل تحميل الخصم' : 'Failed to load discount'));
+      setCustomerDiscount(null);
+      setDiscountForm({
+        discount_percentage: '',
+        start_date: '',
+        end_date: '',
+        is_active: true
+      });
+    } finally {
+      setLoadingDiscount(false);
+    }
+  };
+
+  const handleSaveDiscount = async () => {
+    if (!selectedCustomer) return;
+    
+    if (!discountForm.discount_percentage || !discountForm.start_date || !discountForm.end_date) {
+      alert(language === 'ar' ? 'يرجى ملء جميع الحقول' : 'Please fill all fields');
+      return;
+    }
+    
+    const discountPercentage = parseFloat(discountForm.discount_percentage);
+    if (isNaN(discountPercentage) || discountPercentage < 0 || discountPercentage > 100) {
+      alert(language === 'ar' ? 'نسبة الخصم يجب أن تكون بين 0 و 100' : 'Discount percentage must be between 0 and 100');
+      return;
+    }
+    
+    if (new Date(discountForm.end_date) < new Date(discountForm.start_date)) {
+      alert(language === 'ar' ? 'تاريخ النهاية يجب أن يكون بعد تاريخ البداية' : 'End date must be after start date');
+      return;
+    }
+    
+    try {
+      const response = await adminAPI.setCustomerDiscount(selectedCustomer.id, {
+        discount_percentage: discountPercentage,
+        start_date: discountForm.start_date,
+        end_date: discountForm.end_date,
+        is_active: discountForm.is_active
+      });
+      
+      if (response.success) {
+        setShowDiscountModal(false);
+        setSelectedCustomer(null);
+        alert(language === 'ar' ? 'تم حفظ الخصم بنجاح' : 'Discount saved successfully');
+      }
+    } catch (err: any) {
+      alert(err.message || (language === 'ar' ? 'فشل حفظ الخصم' : 'Failed to save discount'));
+    }
+  };
+
+  const handleDeleteDiscount = async () => {
+    if (!selectedCustomer) return;
+    
+    if (!confirm(language === 'ar' ? 'هل أنت متأكد من حذف الخصم؟' : 'Are you sure you want to delete the discount?')) return;
+    
+    try {
+      const response = await adminAPI.deleteCustomerDiscount(selectedCustomer.id);
+      if (response.success) {
+        setShowDiscountModal(false);
+        setSelectedCustomer(null);
+        setCustomerDiscount(null);
+        alert(language === 'ar' ? 'تم حذف الخصم بنجاح' : 'Discount deleted successfully');
+      }
+    } catch (err: any) {
+      alert(err.message || (language === 'ar' ? 'فشل حذف الخصم' : 'Failed to delete discount'));
+    }
+  };
+
   const getSectionLabel = (section: string) => {
     const labels: { [key: string]: { ar: string; en: string } } = {
       users: { ar: 'إدارة المستخدمين', en: 'User Management' },
@@ -558,6 +667,15 @@ const AdminUsers: React.FC<AdminUsersProps> = ({ onNavigate }) => {
                               <Shield size={18} />
                             </button>
                           )}
+                          {user.role === 'customer' && currentUser?.role === 'admin' && (
+                            <button
+                              onClick={() => handleOpenDiscount(user)}
+                              className="bg-green-100 text-green-600 p-2 rounded-xl hover:bg-green-200 transition-all"
+                              title={language === 'ar' ? 'إدارة الخصم' : 'Manage Discount'}
+                            >
+                              <Percent size={18} />
+                            </button>
+                          )}
                           {user.id !== currentUser?.id && (currentUser?.role === 'admin' || canEdit) && (
                             <button
                               onClick={() => handleToggleStatus(user.id)}
@@ -740,6 +858,152 @@ const AdminUsers: React.FC<AdminUsersProps> = ({ onNavigate }) => {
                 {language === 'ar' ? 'إلغاء' : 'Cancel'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Discount Modal */}
+      {showDiscountModal && selectedCustomer && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl p-8 max-w-2xl w-full shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h2 className="text-2xl font-black mb-2">{language === 'ar' ? 'إدارة خصم العميل' : 'Manage Customer Discount'}</h2>
+                <p className="text-gray-500 font-bold">{selectedCustomer.name} ({selectedCustomer.email})</p>
+              </div>
+              <button
+                onClick={() => {
+                  setShowDiscountModal(false);
+                  setSelectedCustomer(null);
+                  setCustomerDiscount(null);
+                  setDiscountForm({
+                    discount_percentage: '',
+                    start_date: '',
+                    end_date: '',
+                    is_active: true
+                  });
+                }}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            {loadingDiscount ? (
+              <div className="text-center py-8">
+                <div className="text-xl font-bold">{language === 'ar' ? 'جاري التحميل...' : 'Loading...'}</div>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                <div>
+                  <label className="text-sm font-bold text-gray-700 mb-2 block">
+                    {language === 'ar' ? 'نسبة الخصم (%)' : 'Discount Percentage (%)'}
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.01"
+                    value={discountForm.discount_percentage}
+                    onChange={(e) => setDiscountForm({ ...discountForm, discount_percentage: e.target.value })}
+                    className="w-full bg-gray-50 px-4 py-3 rounded-2xl outline-none border-2 border-transparent focus:border-primary font-bold"
+                    placeholder={language === 'ar' ? 'مثال: 10' : 'Example: 10'}
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-bold text-gray-700 mb-2 block">
+                      {language === 'ar' ? 'تاريخ البداية' : 'Start Date'}
+                    </label>
+                    <input
+                      type="date"
+                      value={discountForm.start_date}
+                      onChange={(e) => setDiscountForm({ ...discountForm, start_date: e.target.value })}
+                      className="w-full bg-gray-50 px-4 py-3 rounded-2xl outline-none border-2 border-transparent focus:border-primary font-bold"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-bold text-gray-700 mb-2 block">
+                      {language === 'ar' ? 'تاريخ النهاية' : 'End Date'}
+                    </label>
+                    <input
+                      type="date"
+                      value={discountForm.end_date}
+                      onChange={(e) => setDiscountForm({ ...discountForm, end_date: e.target.value })}
+                      className="w-full bg-gray-50 px-4 py-3 rounded-2xl outline-none border-2 border-transparent focus:border-primary font-bold"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    id="discount-active"
+                    checked={discountForm.is_active}
+                    onChange={(e) => setDiscountForm({ ...discountForm, is_active: e.target.checked })}
+                    className="w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary"
+                  />
+                  <label htmlFor="discount-active" className="text-sm font-bold text-gray-700 cursor-pointer">
+                    {language === 'ar' ? 'تفعيل الخصم' : 'Activate Discount'}
+                  </label>
+                </div>
+
+                {customerDiscount && (
+                  <div className="bg-gray-50 p-4 rounded-2xl">
+                    <p className="text-sm font-bold text-gray-600 mb-2">
+                      {language === 'ar' ? 'الخصم الحالي:' : 'Current Discount:'}
+                    </p>
+                    <p className="font-black text-primary text-lg">
+                      {customerDiscount.discount_percentage}% 
+                      {customerDiscount.is_active === 1 || customerDiscount.is_active === true ? (
+                        <span className="text-green-600 text-sm ml-2">({language === 'ar' ? 'مفعل' : 'Active'})</span>
+                      ) : (
+                        <span className="text-red-600 text-sm ml-2">({language === 'ar' ? 'غير مفعل' : 'Inactive'})</span>
+                      )}
+                    </p>
+                    <p className="text-sm text-gray-500 mt-1">
+                      {new Date(customerDiscount.start_date).toLocaleDateString(language === 'ar' ? 'ar-SA' : 'en-US')} - 
+                      {new Date(customerDiscount.end_date).toLocaleDateString(language === 'ar' ? 'ar-SA' : 'en-US')}
+                    </p>
+                  </div>
+                )}
+
+                <div className="flex gap-4 pt-4">
+                  <button
+                    onClick={handleSaveDiscount}
+                    className="flex-1 bg-primary text-white py-3 rounded-2xl font-bold hover:bg-secondary transition-all"
+                  >
+                    {language === 'ar' ? 'حفظ الخصم' : 'Save Discount'}
+                  </button>
+                  {customerDiscount && (
+                    <button
+                      onClick={handleDeleteDiscount}
+                      className="bg-red-500 text-white py-3 px-6 rounded-2xl font-bold hover:bg-red-600 transition-all"
+                    >
+                      {language === 'ar' ? 'حذف الخصم' : 'Delete Discount'}
+                    </button>
+                  )}
+                  <button
+                    onClick={() => {
+                      setShowDiscountModal(false);
+                      setSelectedCustomer(null);
+                      setCustomerDiscount(null);
+                      setDiscountForm({
+                        discount_percentage: '',
+                        start_date: '',
+                        end_date: '',
+                        is_active: true
+                      });
+                    }}
+                    className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-2xl font-bold hover:bg-gray-200 transition-all"
+                  >
+                    {language === 'ar' ? 'إلغاء' : 'Cancel'}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

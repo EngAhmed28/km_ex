@@ -2,6 +2,8 @@
 import React from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import { useCart } from '../context/CartContext';
+import { useDiscount } from '../context/DiscountContext';
+import { calculateDiscountedPrice, isDiscountActive } from '../utils/discount';
 import { Trash2, ShoppingBag, Plus, Minus, ArrowRight, ArrowLeft } from 'lucide-react';
 
 interface CartProps {
@@ -10,7 +12,19 @@ interface CartProps {
 
 const Cart: React.FC<CartProps> = ({ onNavigate }) => {
   const { t, language } = useLanguage();
-  const { cart, removeFromCart, totalPrice, updateQuantity } = useCart();
+  const { cart, removeFromCart, updateQuantity } = useCart();
+  const { customerDiscount } = useDiscount();
+  
+  // Calculate prices with discount
+  const hasDiscount = customerDiscount && isDiscountActive(customerDiscount);
+  const cartWithDiscount = cart.map(item => ({
+    ...item,
+    discountedPrice: calculateDiscountedPrice(item.price, customerDiscount)
+  }));
+  
+  const subtotal = cartWithDiscount.reduce((acc, item) => acc + item.price * item.quantity, 0);
+  const totalPrice = cartWithDiscount.reduce((acc, item) => acc + item.discountedPrice * item.quantity, 0);
+  const discountAmount = subtotal - totalPrice;
 
   if (cart.length === 0) {
     return (
@@ -57,7 +71,18 @@ const Cart: React.FC<CartProps> = ({ onNavigate }) => {
               </div>
 
               <div className="flex flex-col items-center sm:items-end gap-2">
-                <span className="text-2xl font-black text-primary whitespace-nowrap">{item.price * item.quantity} {language === 'ar' ? 'ج.م' : 'EGP'}</span>
+                {hasDiscount ? (
+                  <>
+                    <span className="text-2xl font-black text-primary whitespace-nowrap">
+                      {calculateDiscountedPrice(item.price, customerDiscount) * item.quantity} {language === 'ar' ? 'ج.م' : 'EGP'}
+                    </span>
+                    <span className="text-gray-400 line-through text-sm">
+                      {item.price * item.quantity} {language === 'ar' ? 'ج.م' : 'EGP'}
+                    </span>
+                  </>
+                ) : (
+                  <span className="text-2xl font-black text-primary whitespace-nowrap">{item.price * item.quantity} {language === 'ar' ? 'ج.م' : 'EGP'}</span>
+                )}
                 <button onClick={() => removeFromCart(item.id)} className="p-2 text-gray-300 hover:text-red-500 transition-colors"><Trash2 size={20} /></button>
               </div>
             </div>
@@ -71,15 +96,21 @@ const Cart: React.FC<CartProps> = ({ onNavigate }) => {
             <div className="space-y-4 mb-8">
               <div className="flex justify-between items-center text-gray-400 font-bold">
                 <span>{t('subtotal')}:</span>
-                <span className="text-white">{totalPrice} {language === 'ar' ? 'ج.م' : 'EGP'}</span>
+                <span className="text-white">{subtotal.toFixed(2)} {language === 'ar' ? 'ج.م' : 'EGP'}</span>
               </div>
+              {hasDiscount && discountAmount > 0 && (
+                <div className="flex justify-between items-center text-green-400 font-bold">
+                  <span>{language === 'ar' ? `خصم ${customerDiscount?.discount_percentage}%` : `${customerDiscount?.discount_percentage}% Discount`}:</span>
+                  <span className="text-green-400">-{discountAmount.toFixed(2)} {language === 'ar' ? 'ج.م' : 'EGP'}</span>
+                </div>
+              )}
               <div className="flex justify-between items-center text-gray-400 font-bold">
                 <span>{t('shipping')}:</span>
                 <span className="text-green-400">{t('free')}</span>
               </div>
               <div className="border-t border-white/10 pt-4 flex justify-between items-center">
                 <span className="text-xl font-black uppercase italic">{t('total')}:</span>
-                <span className="text-3xl font-black text-primary italic">{totalPrice} {language === 'ar' ? 'ج.م' : 'EGP'}</span>
+                <span className="text-3xl font-black text-primary italic">{totalPrice.toFixed(2)} {language === 'ar' ? 'ج.م' : 'EGP'}</span>
               </div>
             </div>
 

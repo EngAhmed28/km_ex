@@ -4,6 +4,7 @@ import { LanguageProvider } from './context/LanguageContext';
 import { AuthProvider } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
 import { WishlistProvider } from './context/WishlistContext';
+import { DiscountProvider } from './context/DiscountContext';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import Home from './pages/Home';
@@ -65,17 +66,19 @@ const App: React.FC = () => {
   return (
     <LanguageProvider>
       <AuthProvider>
-        <WishlistProvider>
-          <CartProvider>
-            <div className="min-h-screen flex flex-col selection:bg-primary selection:text-white">
-              <Header onNavigate={navigate} />
-              <main className="flex-grow">
-                {renderPage()}
-              </main>
-              <Footer />
-            </div>
-          </CartProvider>
-        </WishlistProvider>
+        <DiscountProvider>
+          <WishlistProvider>
+            <CartProvider>
+              <div className="min-h-screen flex flex-col selection:bg-primary selection:text-white">
+                <Header onNavigate={navigate} />
+                <main className="flex-grow">
+                  {renderPage()}
+                </main>
+                <Footer />
+              </div>
+            </CartProvider>
+          </WishlistProvider>
+        </DiscountProvider>
       </AuthProvider>
     </LanguageProvider>
   );

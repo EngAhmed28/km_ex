@@ -1,9 +1,12 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useLanguage } from '../context/LanguageContext';
-import { productsAPI } from '../utils/api';
+import { productsAPI, reviewAPI } from '../utils/api';
 import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
+import { useDiscount } from '../context/DiscountContext';
+import { useAuth } from '../context/AuthContext';
+import { calculateDiscountedPrice, isDiscountActive } from '../utils/discount';
 import { Product } from '../types';
 import { 
   Star, 
@@ -17,6 +20,7 @@ import {
   RotateCcw, 
   Check, 
   ShoppingBag,
+  ShoppingCart,
   ChevronLeft,
   ChevronRight,
   Loader2,
@@ -40,6 +44,8 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ id, onNavigate }) => {
   const { t, language } = useLanguage();
   const { addToCart } = useCart();
   const { toggleWishlist, isInWishlist } = useWishlist();
+  const { customerDiscount } = useDiscount();
+  const { user } = useAuth();
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -50,30 +56,53 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ id, onNavigate }) => {
   const [activeTab, setActiveTab] = useState<'description' | 'nutrition' | 'reviews'>('description');
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   
-  // Mock reviews data (will be replaced with API later)
-  const [reviews] = useState([
-    {
-      id: 1,
-      userName: 'أحمد محمد',
-      rating: 5,
-      comment: 'منتج ممتاز جداً، النتيجة ظاهرة بعد أسبوعين من الاستخدام. أنصح به بشدة!',
-      date: '2024-01-15'
-    },
-    {
-      id: 2,
-      userName: 'محمد علي',
-      rating: 4,
-      comment: 'جودة عالية وسعر مناسب. التوصيل كان سريعاً.',
-      date: '2024-01-10'
-    },
-    {
-      id: 3,
-      userName: 'خالد أحمد',
-      rating: 5,
-      comment: 'أفضل منتج جربته. النكهة ممتازة والنتائج واضحة.',
-      date: '2024-01-05'
+  // Reviews state
+  const [reviews, setReviews] = useState<any[]>([]);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
+  const [hasReviewed, setHasReviewed] = useState(false);
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [reviewForm, setReviewForm] = useState({
+    rating: 5,
+    comment: ''
+  });
+  const [submittingReview, setSubmittingReview] = useState(false);
+
+  // Fetch reviews
+  const fetchReviews = async () => {
+    if (!id) return;
+    try {
+      setReviewsLoading(true);
+      const response = await reviewAPI.getProductReviews(id);
+      if (response.success && response.data && response.data.reviews) {
+        setReviews(response.data.reviews);
+      }
+    } catch (error) {
+      console.error('Error fetching reviews:', error);
+    } finally {
+      setReviewsLoading(false);
     }
-  ]);
+  };
+
+  // Check if user has reviewed
+  const checkUserReview = async () => {
+    if (!id || !user) return;
+    try {
+      const response = await reviewAPI.getUserReview(id);
+      if (response.success && response.data) {
+        setHasReviewed(response.data.hasReviewed);
+      }
+    } catch (error) {
+      console.error('Error checking user review:', error);
+    }
+  };
+
+  useEffect(() => {
+    if (id) {
+      fetchReviews();
+      checkUserReview();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, user?.id]);
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -321,14 +350,39 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ id, onNavigate }) => {
 
             <div className="flex items-end gap-6">
               <div className="flex flex-col">
-                <span className="text-6xl font-black text-primary italic">
-                  {product.price} <span className="text-2xl font-normal not-italic opacity-60">{language === 'ar' ? 'ج.م' : 'EGP'}</span>
-                </span>
-                {product.oldPrice && (
-                  <span className="text-2xl text-gray-400 line-through font-bold mt-2">
-                    {product.oldPrice} {language === 'ar' ? 'ج.م' : 'EGP'}
-                  </span>
-                )}
+                {(() => {
+                  const hasDiscount = customerDiscount && isDiscountActive(customerDiscount);
+                  const discountedPrice = calculateDiscountedPrice(product.price, customerDiscount);
+                  
+                  if (hasDiscount && discountedPrice < product.price) {
+                    return (
+                      <>
+                        <span className="text-6xl font-black text-primary italic">
+                          <span className="text-primary line-through opacity-50 text-4xl">
+                            {product.price}
+                          </span>
+                          {' '}
+                          {discountedPrice.toFixed(2)} <span className="text-2xl font-normal not-italic opacity-60">{language === 'ar' ? 'ج.م' : 'EGP'}</span>
+                        </span>
+                        <span className="text-green-600 text-sm font-bold mt-2">
+                          {language === 'ar' ? `خصم ${customerDiscount?.discount_percentage}%` : `${customerDiscount?.discount_percentage}% OFF`}
+                        </span>
+                      </>
+                    );
+                  }
+                  return (
+                    <>
+                      <span className="text-6xl font-black text-primary italic">
+                        {product.price} <span className="text-2xl font-normal not-italic opacity-60">{language === 'ar' ? 'ج.م' : 'EGP'}</span>
+                      </span>
+                      {product.oldPrice && (
+                        <span className="text-2xl text-gray-400 line-through font-bold mt-2">
+                          {product.oldPrice} {language === 'ar' ? 'ج.م' : 'EGP'}
+                        </span>
+                      )}
+                    </>
+                  );
+                })()}
               </div>
             </div>
 
@@ -585,13 +639,33 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ id, onNavigate }) => {
                     </span>
                   </div>
                 </div>
-                <button className="px-6 py-3 bg-primary text-white rounded-xl font-black hover:bg-secondary transition-all">
-                  {language === 'ar' ? 'أضف تقييم' : 'Add Review'}
-                </button>
+                {user && !hasReviewed && (
+                  <button 
+                    onClick={() => setShowReviewModal(true)}
+                    className="px-6 py-3 bg-primary text-white rounded-xl font-black hover:bg-secondary transition-all"
+                  >
+                    {language === 'ar' ? 'أضف تقييم' : 'Add Review'}
+                  </button>
+                )}
+                {!user && (
+                  <button 
+                    onClick={() => onNavigate('login')}
+                    className="px-6 py-3 bg-primary text-white rounded-xl font-black hover:bg-secondary transition-all"
+                  >
+                    {language === 'ar' ? 'سجل دخول لإضافة تقييم' : 'Login to Add Review'}
+                  </button>
+                )}
               </div>
 
               <div className="space-y-6">
-                {reviews.length > 0 ? (
+                {reviewsLoading ? (
+                  <div className="text-center py-12">
+                    <Loader2 className="animate-spin mx-auto mb-4 text-primary" size={48} />
+                    <p className="text-gray-500 font-bold">
+                      {language === 'ar' ? 'جاري تحميل التقييمات...' : 'Loading reviews...'}
+                    </p>
+                  </div>
+                ) : reviews.length > 0 ? (
                   reviews.map((review) => (
                     <div key={review.id} className="border-b border-gray-100 pb-6 last:border-0">
                       <div className="flex items-start justify-between mb-3">
@@ -612,14 +686,35 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ id, onNavigate }) => {
                               ))}
                             </div>
                             <span className="text-xs text-gray-500 font-bold">{review.date}</span>
+                            {review.isVerifiedPurchase && (
+                              <span className="text-xs bg-green-100 text-green-600 px-2 py-1 rounded-full font-bold">
+                                {language === 'ar' ? 'شراء موثق' : 'Verified Purchase'}
+                              </span>
+                            )}
                           </div>
                         </div>
                       </div>
-                      <p className="text-gray-600 font-bold leading-relaxed">{review.comment}</p>
+                      <p className="text-gray-600 font-bold leading-relaxed">{review.comment || ''}</p>
                       <div className="flex items-center gap-4 mt-4">
-                        <button className="flex items-center gap-2 text-gray-500 hover:text-primary transition-colors">
+                        <button 
+                          onClick={async () => {
+                            if (!user) {
+                              onNavigate('login');
+                              return;
+                            }
+                            try {
+                              await reviewAPI.markHelpful(review.id);
+                              fetchReviews(); // Refresh reviews to update helpful count
+                            } catch (error: any) {
+                              alert(error.message || (language === 'ar' ? 'حدث خطأ' : 'An error occurred'));
+                            }
+                          }}
+                          className="flex items-center gap-2 text-gray-500 hover:text-primary transition-colors"
+                        >
                           <ThumbsUp size={16} />
-                          <span className="text-xs font-bold">{language === 'ar' ? 'مفيد' : 'Helpful'}</span>
+                          <span className="text-xs font-bold">
+                            {language === 'ar' ? 'مفيد' : 'Helpful'} ({review.helpfulCount || 0})
+                          </span>
                         </button>
                       </div>
                     </div>
@@ -630,9 +725,14 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ id, onNavigate }) => {
                     <p className="text-gray-500 font-bold">
                       {language === 'ar' ? 'لا توجد مراجعات بعد' : 'No reviews yet'}
                     </p>
-                    <button className="mt-4 px-6 py-3 bg-primary text-white rounded-xl font-black hover:bg-secondary transition-all">
-                      {language === 'ar' ? 'كن أول من يقيّم' : 'Be the first to review'}
-                    </button>
+                    {user && !hasReviewed && (
+                      <button 
+                        onClick={() => setShowReviewModal(true)}
+                        className="mt-4 px-6 py-3 bg-primary text-white rounded-xl font-black hover:bg-secondary transition-all"
+                      >
+                        {language === 'ar' ? 'كن أول من يقيّم' : 'Be the first to review'}
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
@@ -643,39 +743,253 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ id, onNavigate }) => {
         {/* Similar Products */}
         {similarProducts.length > 0 && (
           <div className="mt-32">
-            <h2 className="text-4xl font-black italic uppercase mb-12">{t('similarProducts')}</h2>
-            <div className="relative">
-              <div 
-                ref={scrollContainerRef}
-                className="flex gap-8 overflow-x-auto scrollbar-hide pb-4"
-                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-              >
-                {similarProducts.map((product) => (
-                  <div key={product.id} className="min-w-[280px] flex-shrink-0">
-                    <ProductCard
-                      product={product}
-                      onClick={(id) => onNavigate('product', { id })}
-                      onAddToCart={(e, p) => addToCart(p, 1, p.flavor[0])}
-                    />
+            <h2 className="text-2xl md:text-3xl lg:text-4xl font-black italic uppercase mb-8 md:mb-12">{t('similarProducts')}</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+              {similarProducts.map((product, index) => {
+                // Make first product larger on medium+ screens, normal on mobile
+                const isLarge = index === 0;
+                return (
+                  <div 
+                    key={product.id} 
+                    className={`${isLarge ? 'sm:col-span-2 lg:col-span-2 lg:row-span-2' : ''} flex flex-col`}
+                  >
+                    {isLarge ? (
+                      <div 
+                        className="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 border border-gray-100 flex flex-col h-full cursor-pointer relative"
+                        onClick={() => onNavigate('product', { id: product.id })}
+                      >
+                        {/* Heart Icon (Wishlist) */}
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleWishlist(product.id);
+                          }}
+                          className={`absolute top-4 left-4 z-10 p-2 rounded-full transition-all duration-300 ${isInWishlist(product.id) ? 'bg-primary text-white scale-110 shadow-lg' : 'bg-white text-gray-400 hover:text-primary hover:bg-accent'}`}
+                        >
+                          <Heart size={18} fill={isInWishlist(product.id) ? "currentColor" : "none"} />
+                        </button>
+
+                        <div className="relative w-full aspect-[4/5] overflow-hidden bg-accent flex items-center justify-center p-4 md:p-6 lg:p-8">
+                          <img 
+                            src={product.image} 
+                            alt={language === 'ar' ? product.nameAr : product.nameEn} 
+                            className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-700 ease-out"
+                            style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                            onError={(e) => {
+                              e.currentTarget.src = "https://images.unsplash.com/photo-1577538928305-3807c3993047?q=80&w=800&auto=format&fit=crop";
+                            }}
+                          />
+                          
+                          {product.oldPrice && (
+                            <div className="absolute top-4 right-4 bg-primary text-white text-xs font-black px-3 py-1 rounded-full shadow-lg">
+                              -{Math.round(((product.oldPrice - product.price) / product.oldPrice) * 100)}%
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="p-4 md:p-6 flex-grow flex flex-col">
+                          <div className="flex items-center gap-1 mb-2">
+                            <Star className="text-yellow-400 fill-yellow-400" size={14} />
+                            <span className="text-xs md:text-sm font-bold text-gray-700">{product.rating}</span>
+                            <span className="text-[10px] text-gray-400">({product.reviewsCount} {language === 'ar' ? 'تقييم' : 'reviews'})</span>
+                          </div>
+                          
+                          <h3 className="font-bold text-base md:text-lg lg:text-xl mb-3 group-hover:text-primary transition-colors line-clamp-2 leading-snug">
+                            {language === 'ar' ? product.nameAr : product.nameEn}
+                          </h3>
+
+                          <div className="mt-auto pt-4 flex items-center justify-between border-t border-gray-50">
+                            <div className="flex flex-col">
+                              {(() => {
+                                const hasDiscount = customerDiscount && isDiscountActive(customerDiscount);
+                                const discountedPrice = calculateDiscountedPrice(product.price, customerDiscount);
+                                
+                                if (hasDiscount && discountedPrice < product.price) {
+                                  return (
+                                    <>
+                                      <span className="text-primary font-black text-xl md:text-2xl leading-none">
+                                        {discountedPrice.toFixed(2)} <span className="text-xs md:text-sm font-normal opacity-70">{language === 'ar' ? 'ج.م' : 'EGP'}</span>
+                                      </span>
+                                      <span className="text-gray-400 line-through text-xs md:text-sm font-semibold mt-1">
+                                        {product.price} {language === 'ar' ? 'ج.م' : 'EGP'}
+                                      </span>
+                                      <span className="text-green-600 text-[10px] md:text-xs font-bold mt-1">
+                                        {language === 'ar' ? `خصم ${customerDiscount?.discount_percentage}%` : `${customerDiscount?.discount_percentage}% OFF`}
+                                      </span>
+                                    </>
+                                  );
+                                }
+                                return (
+                                  <>
+                                    <span className="text-primary font-black text-xl md:text-2xl leading-none">
+                                      {product.price} <span className="text-xs md:text-sm font-normal opacity-70">{language === 'ar' ? 'ج.م' : 'EGP'}</span>
+                                    </span>
+                                    {product.oldPrice && (
+                                      <span className="text-gray-400 line-through text-xs md:text-sm font-semibold mt-1">
+                                        {product.oldPrice} {language === 'ar' ? 'ج.م' : 'EGP'}
+                                      </span>
+                                    )}
+                                  </>
+                                );
+                              })()}
+                            </div>
+                            
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                addToCart(product, 1, product.flavor && product.flavor.length > 0 ? product.flavor[0] : '');
+                              }}
+                              className="w-12 h-12 md:w-14 md:h-14 rounded-2xl flex items-center justify-center transition-all group/btn shadow-md active:scale-90 bg-secondary text-white hover:bg-primary hover:shadow-primary/20"
+                              title={t('addToCart')}
+                            >
+                              <ShoppingCart size={20} className="md:w-6 md:h-6 group-hover/btn:animate-bounce" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <ProductCard
+                        product={product}
+                        onClick={(id) => onNavigate('product', { id })}
+                        onAddToCart={(e, p) => addToCart(p, 1, p.flavor[0])}
+                      />
+                    )}
                   </div>
-                ))}
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Review Modal */}
+        {showReviewModal && (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-3xl p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-2xl font-black">{language === 'ar' ? 'أضف تقييمك' : 'Add Your Review'}</h3>
+                <button
+                  onClick={() => {
+                    setShowReviewModal(false);
+                    setReviewForm({ rating: 5, comment: '' });
+                  }}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <XIcon size={24} />
+                </button>
               </div>
-              {similarProducts.length > 3 && (
-                <>
+
+              <div className="space-y-6">
+                {/* Rating */}
+                <div>
+                  <label className="block text-sm font-black mb-3">
+                    {language === 'ar' ? 'التقييم' : 'Rating'} *
+                  </label>
+                  <div className="flex items-center gap-2">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        type="button"
+                        onClick={() => setReviewForm({ ...reviewForm, rating: star })}
+                        className="focus:outline-none"
+                      >
+                        <Star
+                          size={32}
+                          className={`transition-colors ${
+                            star <= reviewForm.rating
+                              ? 'text-yellow-400 fill-yellow-400'
+                              : 'text-gray-300'
+                          }`}
+                        />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Comment */}
+                <div>
+                  <label className="block text-sm font-black mb-3">
+                    {language === 'ar' ? 'التعليق (اختياري)' : 'Comment (Optional)'}
+                  </label>
+                  <textarea
+                    value={reviewForm.comment}
+                    onChange={(e) => setReviewForm({ ...reviewForm, comment: e.target.value })}
+                    placeholder={language === 'ar' ? 'اكتب تعليقك هنا...' : 'Write your comment here...'}
+                    className="w-full p-4 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+                    rows={5}
+                    maxLength={1000}
+                  />
+                  <p className="text-xs text-gray-400 mt-2">
+                    {reviewForm.comment.length}/1000
+                  </p>
+                </div>
+
+                {/* Submit Button */}
+                <div className="flex gap-4">
                   <button
-                    onClick={() => scroll('left')}
-                    className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 bg-white p-3 rounded-full shadow-lg hover:bg-primary hover:text-white transition-all"
+                    onClick={async () => {
+                      if (!id) return;
+                      try {
+                        setSubmittingReview(true);
+                        await reviewAPI.createReview(id, reviewForm.rating, reviewForm.comment);
+                        setShowReviewModal(false);
+                        setReviewForm({ rating: 5, comment: '' });
+                        setHasReviewed(true);
+                        fetchReviews(); // Refresh reviews
+                        // Refresh product to update rating
+                        const response = await productsAPI.getProductById(id);
+                        if (response.success && response.data && response.data.product) {
+                          const prod = response.data.product;
+                          let imageUrl = prod.image || null;
+                          if (imageUrl && !imageUrl.startsWith('http') && imageUrl.startsWith('/')) {
+                            imageUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${imageUrl}`;
+                          }
+                          let imagesArray: string[] = [];
+                          if (prod.images && Array.isArray(prod.images) && prod.images.length > 0) {
+                            imagesArray = prod.images.map((img: string) => {
+                              if (img && !img.startsWith('http') && img.startsWith('/')) {
+                                return `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${img}`;
+                              }
+                              return img;
+                            });
+                          }
+                          setProduct({
+                            ...prod,
+                            image: imageUrl,
+                            images: imagesArray.length > 0 ? imagesArray : (imageUrl ? [imageUrl] : []),
+                            rating: parseFloat(prod.rating || 0),
+                            reviewsCount: parseInt(prod.reviews_count || 0)
+                          });
+                        }
+                        alert(language === 'ar' ? 'تم إضافة التقييم بنجاح!' : 'Review added successfully!');
+                      } catch (error: any) {
+                        alert(error.message || (language === 'ar' ? 'حدث خطأ أثناء إضافة التقييم' : 'Error adding review'));
+                      } finally {
+                        setSubmittingReview(false);
+                      }
+                    }}
+                    disabled={submittingReview}
+                    className="flex-1 px-6 py-3 bg-primary text-white rounded-xl font-black hover:bg-secondary transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <ChevronLeft size={24} />
+                    {submittingReview ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <Loader2 className="animate-spin" size={20} />
+                        {language === 'ar' ? 'جاري الإرسال...' : 'Submitting...'}
+                      </span>
+                    ) : (
+                      language === 'ar' ? 'إرسال التقييم' : 'Submit Review'
+                    )}
                   </button>
                   <button
-                    onClick={() => scroll('right')}
-                    className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 bg-white p-3 rounded-full shadow-lg hover:bg-primary hover:text-white transition-all"
+                    onClick={() => {
+                      setShowReviewModal(false);
+                      setReviewForm({ rating: 5, comment: '' });
+                    }}
+                    className="px-6 py-3 bg-gray-100 text-gray-600 rounded-xl font-black hover:bg-gray-200 transition-all"
                   >
-                    <ChevronRight size={24} />
+                    {language === 'ar' ? 'إلغاء' : 'Cancel'}
                   </button>
-                </>
-              )}
+                </div>
+              </div>
             </div>
           </div>
         )}

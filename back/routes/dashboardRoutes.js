@@ -1,5 +1,6 @@
 import express from 'express';
 import { getDashboard, updateProfile } from '../controllers/dashboardController.js';
+import { getMyDiscount } from '../controllers/customerDiscountController.js';
 import { authenticateToken } from '../middleware/auth.js';
 import { body } from 'express-validator';
 import { handleValidationErrors } from '../middleware/validation.js';
@@ -11,6 +12,9 @@ router.use(authenticateToken);
 
 // Get dashboard data
 router.get('/', getDashboard);
+
+// Get customer's own discount
+router.get('/discount', getMyDiscount);
 
 // Update profile
 router.put('/profile', [

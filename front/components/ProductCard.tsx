@@ -3,6 +3,8 @@ import React, { useState } from 'react';
 import { Product } from '../types';
 import { useLanguage } from '../context/LanguageContext';
 import { useWishlist } from '../context/WishlistContext';
+import { useDiscount } from '../context/DiscountContext';
+import { calculateDiscountedPrice, isDiscountActive } from '../utils/discount';
 import { ShoppingCart, Star, Heart, Loader2 } from 'lucide-react';
 
 interface ProductCardProps {
@@ -14,7 +16,12 @@ interface ProductCardProps {
 const ProductCard: React.FC<ProductCardProps> = ({ product, onClick, onAddToCart }) => {
   const { language, t } = useLanguage();
   const { toggleWishlist, isInWishlist } = useWishlist();
+  const { customerDiscount } = useDiscount();
   const [isAdding, setIsAdding] = useState(false);
+  
+  // Calculate discounted price
+  const discountedPrice = calculateDiscountedPrice(product.price, customerDiscount);
+  const hasDiscount = customerDiscount && isDiscountActive(customerDiscount) && discountedPrice < product.price;
 
   const handleAdd = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -47,11 +54,12 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onClick, onAddToCart
         <Heart size={18} fill={isLiked ? "currentColor" : "none"} />
       </button>
 
-      <div className="relative aspect-[4/5] overflow-hidden bg-accent flex items-center justify-center p-4">
+      <div className="relative w-full aspect-[4/5] overflow-hidden bg-accent flex items-center justify-center p-4">
         <img 
           src={product.image} 
           alt={language === 'ar' ? product.nameAr : product.nameEn} 
           className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-700 ease-out"
+          style={{ width: '100%', height: '100%', objectFit: 'contain' }}
           onError={(e) => {
             e.currentTarget.src = "https://images.unsplash.com/photo-1577538928305-3807c3993047?q=80&w=800&auto=format&fit=crop";
           }}
@@ -84,13 +92,29 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onClick, onAddToCart
 
         <div className="mt-auto pt-4 flex items-center justify-between border-t border-gray-50">
           <div className="flex flex-col">
-            <span className="text-primary font-black text-xl leading-none">
-              {product.price} <span className="text-xs font-normal opacity-70">{language === 'ar' ? 'ج.م' : 'EGP'}</span>
-            </span>
-            {product.oldPrice && (
-              <span className="text-gray-400 line-through text-xs font-semibold mt-1">
-                {product.oldPrice} {language === 'ar' ? 'ج.م' : 'EGP'}
-              </span>
+            {hasDiscount ? (
+              <>
+                <span className="text-primary font-black text-xl leading-none">
+                  {discountedPrice.toFixed(2)} <span className="text-xs font-normal opacity-70">{language === 'ar' ? 'ج.م' : 'EGP'}</span>
+                </span>
+                <span className="text-gray-400 line-through text-xs font-semibold mt-1">
+                  {product.price} {language === 'ar' ? 'ج.م' : 'EGP'}
+                </span>
+                <span className="text-green-600 text-[10px] font-bold mt-1">
+                  {language === 'ar' ? `خصم ${customerDiscount?.discount_percentage}%` : `${customerDiscount?.discount_percentage}% OFF`}
+                </span>
+              </>
+            ) : (
+              <>
+                <span className="text-primary font-black text-xl leading-none">
+                  {product.price} <span className="text-xs font-normal opacity-70">{language === 'ar' ? 'ج.م' : 'EGP'}</span>
+                </span>
+                {product.oldPrice && (
+                  <span className="text-gray-400 line-through text-xs font-semibold mt-1">
+                    {product.oldPrice} {language === 'ar' ? 'ج.م' : 'EGP'}
+                  </span>
+                )}
+              </>
             )}
           </div>
           

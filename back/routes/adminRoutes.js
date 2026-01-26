@@ -1,6 +1,7 @@
 import express from 'express';
 import { getAllUsers, getUserById, updateUserRole, updateUser, toggleUserStatus, deleteUser } from '../controllers/adminController.js';
 import { setEmployeePermissions, getAllEmployees } from '../controllers/adminEmployeeController.js';
+import { getCustomerDiscount, setCustomerDiscount, deleteCustomerDiscount, getAllCustomerDiscounts } from '../controllers/customerDiscountController.js';
 import { requireAdmin, requireAdminOrPermission } from '../middleware/roleCheck.js';
 import { authenticateToken } from '../middleware/auth.js';
 import { body, param } from 'express-validator';
@@ -44,5 +45,24 @@ router.put('/employees/:employeeId/permissions', [
   body('permissions').isArray().withMessage('الصلاحيات يجب أن تكون مصفوفة'),
   handleValidationErrors
 ], requireAdmin, setEmployeePermissions);
+
+// Customer discounts management - admin only
+router.get('/customers/:customerId/discount', [
+  param('customerId').isInt().withMessage('معرف العميل غير صحيح'),
+  handleValidationErrors
+], requireAdmin, getCustomerDiscount);
+router.put('/customers/:customerId/discount', [
+  param('customerId').isInt().withMessage('معرف العميل غير صحيح'),
+  body('discount_percentage').isFloat({ min: 0, max: 100 }).withMessage('نسبة الخصم يجب أن تكون بين 0 و 100'),
+  body('start_date').isISO8601().withMessage('تاريخ البداية غير صحيح'),
+  body('end_date').isISO8601().withMessage('تاريخ النهاية غير صحيح'),
+  body('is_active').optional().isBoolean().withMessage('حالة التفعيل يجب أن تكون true أو false'),
+  handleValidationErrors
+], requireAdmin, setCustomerDiscount);
+router.delete('/customers/:customerId/discount', [
+  param('customerId').isInt().withMessage('معرف العميل غير صحيح'),
+  handleValidationErrors
+], requireAdmin, deleteCustomerDiscount);
+router.get('/customers/discounts', requireAdmin, getAllCustomerDiscounts);
 
 export default router;

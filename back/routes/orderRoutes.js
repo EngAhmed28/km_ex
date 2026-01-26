@@ -16,8 +16,8 @@ router.post('/',
     body('items.*.price').isFloat({ min: 0 }).withMessage('السعر غير صحيح'),
     body('total_amount').isFloat({ min: 0 }).withMessage('المبلغ الإجمالي غير صحيح'),
     body('phone').isString().withMessage('رقم الهاتف مطلوب'),
-    body('guest_name').optional().isString().withMessage('الاسم غير صحيح'),
-    body('guest_email').optional().isEmail().withMessage('البريد الإلكتروني غير صحيح'),
+    body('guest_name').optional({ checkFalsy: true, nullable: true }).isString().withMessage('الاسم غير صحيح'),
+    body('guest_email').optional({ checkFalsy: true, nullable: true }).isEmail().withMessage('البريد الإلكتروني غير صحيح'),
     handleValidationErrors
   ],
   optionalAuth, // Optional - checks if user is logged in, but allows guests
