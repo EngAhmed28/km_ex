@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
-import { apiRequest } from '../utils/api';
-import { Users, Search, Edit, Trash2, Shield, UserCheck, UserX, Plus } from 'lucide-react';
+import { apiRequest, adminAPI, dashboardAPI } from '../utils/api';
+import { Users, Search, Edit, Trash2, Shield, UserCheck, UserX, Plus, Settings, X } from 'lucide-react';
 
 interface AdminUsersProps {
   onNavigate: (page: string) => void;
@@ -30,12 +30,104 @@ const AdminUsers: React.FC<AdminUsersProps> = ({ onNavigate }) => {
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showPermissionsModal, setShowPermissionsModal] = useState(false);
+  const [selectedEmployee, setSelectedEmployee] = useState<User | null>(null);
+  const [permissions, setPermissions] = useState<Array<{
+    permission_type: string;
+    can_view: boolean;
+    can_create: boolean;
+    can_edit: boolean;
+    can_delete: boolean;
+  }>>([]);
+  const [loadingPermissions, setLoadingPermissions] = useState(false);
   const [editForm, setEditForm] = useState({ name: '', email: '' });
   const [addForm, setAddForm] = useState({ name: '', email: '', password: '', role: 'customer' });
+  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
+  const [canCreate, setCanCreate] = useState(false);
+  const [canEdit, setCanEdit] = useState(false);
+  const [canDelete, setCanDelete] = useState(false);
 
   useEffect(() => {
-    fetchUsers();
-  }, [page, roleFilter, searchTerm]);
+    checkPermissions();
+  }, []);
+
+  const checkPermissions = async () => {
+    // Admin always has permission
+    if (currentUser?.role === 'admin') {
+      setHasPermission(true);
+      setCanCreate(true);
+      setCanEdit(true);
+      setCanDelete(true);
+      fetchUsers();
+      return;
+    }
+
+    // For employees, check permissions
+    if (currentUser?.role === 'employee') {
+      try {
+        const response = await dashboardAPI.getDashboard();
+        console.log('AdminUsers - Dashboard response:', response);
+        console.log('AdminUsers - Permissions:', response.data?.permissions);
+        
+        if (response.success && response.data?.permissions) {
+          // Check if can_view is true or 1 (MySQL returns 1/0, not true/false)
+          const perm = response.data.permissions.find((p: any) => {
+            const canViewValue = p.can_view;
+            const hasView = canViewValue === true || 
+                           canViewValue === 1 || 
+                           canViewValue === '1' || 
+                           canViewValue === 'true' ||
+                           String(canViewValue).toLowerCase() === 'true';
+            const isUsers = p.permission_type === 'users' || p.permission_type === 'user';
+            console.log('AdminUsers - Checking permission:', { 
+              permission_type: p.permission_type, 
+              can_view: p.can_view,
+              can_view_type: typeof p.can_view,
+              hasView, 
+              isUsers,
+              match: hasView && isUsers
+            });
+            return isUsers && hasView;
+          });
+          
+          if (perm) {
+            console.log('AdminUsers - Permission found:', perm);
+            setHasPermission(true);
+            // Convert MySQL 1/0 to boolean
+            setCanCreate(perm.can_create === true || perm.can_create === 1 || perm.can_create === '1');
+            setCanEdit(perm.can_edit === true || perm.can_edit === 1 || perm.can_edit === '1');
+            setCanDelete(perm.can_delete === true || perm.can_delete === 1 || perm.can_delete === '1');
+            fetchUsers();
+          } else {
+            console.log('AdminUsers - No permission found for users');
+            setHasPermission(false);
+            setError(language === 'ar' ? 'ليس لديك صلاحية للوصول إلى هذا المورد' : 'You do not have permission to access this resource');
+          }
+        } else {
+          console.log('AdminUsers - No permissions in response or response not successful');
+          setHasPermission(false);
+          setError(language === 'ar' ? 'ليس لديك صلاحية للوصول إلى هذا المورد' : 'You do not have permission to access this resource');
+        }
+      } catch (err: any) {
+        console.error('AdminUsers - Permission check error:', err);
+        setHasPermission(false);
+        setError(err.message || (language === 'ar' ? 'ليس لديك صلاحية للوصول إلى هذا المورد' : 'You do not have permission to access this resource'));
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      // Not admin or employee
+      setHasPermission(false);
+      setError(language === 'ar' ? 'ليس لديك صلاحية للوصول إلى هذا المورد' : 'You do not have permission to access this resource');
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (hasPermission) {
+      fetchUsers();
+    }
+  }, [page, roleFilter, searchTerm, hasPermission]);
 
   const fetchUsers = async () => {
     try {
@@ -183,6 +275,88 @@ const AdminUsers: React.FC<AdminUsersProps> = ({ onNavigate }) => {
     }
   };
 
+  const handleOpenPermissions = async (user: User) => {
+    if (user.role !== 'employee') {
+      alert(language === 'ar' ? 'يمكن إدارة الصلاحيات للموظفين فقط' : 'Permissions can only be managed for employees');
+      return;
+    }
+    
+    setSelectedEmployee(user);
+    setShowPermissionsModal(true);
+    setLoadingPermissions(true);
+    
+    try {
+      const response = await adminAPI.getEmployeePermissions(user.id.toString());
+      if (response.success && response.data && response.data.permissions) {
+        // Initialize permissions for all sections
+        const allSections = ['users', 'categories', 'products', 'orders'];
+        const existingPerms = response.data.permissions;
+        
+        const perms = allSections.map(section => {
+          const existing = existingPerms.find((p: any) => p.permission_type === section);
+          return {
+            permission_type: section,
+            can_view: existing?.can_view || false,
+            can_create: existing?.can_create || false,
+            can_edit: existing?.can_edit || false,
+            can_delete: existing?.can_delete || false
+          };
+        });
+        
+        setPermissions(perms);
+      } else {
+        // Initialize empty permissions
+        const allSections = ['users', 'categories', 'products', 'orders'];
+        setPermissions(allSections.map(section => ({
+          permission_type: section,
+          can_view: false,
+          can_create: false,
+          can_edit: false,
+          can_delete: false
+        })));
+      }
+    } catch (err: any) {
+      alert(err.message || (language === 'ar' ? 'فشل تحميل الصلاحيات' : 'Failed to load permissions'));
+    } finally {
+      setLoadingPermissions(false);
+    }
+  };
+
+  const handleSavePermissions = async () => {
+    if (!selectedEmployee) return;
+    
+    try {
+      const response = await adminAPI.setEmployeePermissions(selectedEmployee.id, permissions);
+      if (response.success) {
+        setShowPermissionsModal(false);
+        setSelectedEmployee(null);
+        alert(language === 'ar' ? 'تم حفظ الصلاحيات بنجاح' : 'Permissions saved successfully');
+      }
+    } catch (err: any) {
+      alert(err.message || (language === 'ar' ? 'فشل حفظ الصلاحيات' : 'Failed to save permissions'));
+    }
+  };
+
+  const updatePermission = (section: string, field: string, value: boolean) => {
+    setPermissions(perms => 
+      perms.map(p => 
+        p.permission_type === section 
+          ? { ...p, [field]: value }
+          : p
+      )
+    );
+  };
+
+  const getSectionLabel = (section: string) => {
+    const labels: { [key: string]: { ar: string; en: string } } = {
+      users: { ar: 'إدارة المستخدمين', en: 'User Management' },
+      categories: { ar: 'إدارة الأقسام', en: 'Category Management' },
+      products: { ar: 'إدارة المنتجات', en: 'Product Management' },
+      orders: { ar: 'إدارة الطلبات', en: 'Order Management' }
+    };
+    return labels[section] ? labels[section][language] : section;
+  };
+
   const getRoleBadgeColor = (role: string) => {
     switch (role) {
       case 'admin':
@@ -243,13 +417,15 @@ const AdminUsers: React.FC<AdminUsersProps> = ({ onNavigate }) => {
               <p className="text-gray-500 font-bold">{t('manageAllUsers')}</p>
             </div>
             <div className="flex gap-4">
-              <button
-                onClick={() => setShowAddModal(true)}
-                className="bg-primary text-white px-6 py-3 rounded-2xl font-bold hover:bg-secondary transition-all flex items-center gap-2"
-              >
-                <Plus size={20} />
-                {t('addUser')}
-              </button>
+              {(currentUser?.role === 'admin' || canCreate) && (
+                <button
+                  onClick={() => setShowAddModal(true)}
+                  className="bg-primary text-white px-6 py-3 rounded-2xl font-bold hover:bg-secondary transition-all flex items-center gap-2"
+                >
+                  <Plus size={20} />
+                  {t('addUser')}
+                </button>
+              )}
               <button
                 onClick={() => onNavigate('admin-dashboard')}
                 className="bg-gray-100 text-gray-700 px-6 py-3 rounded-2xl font-bold hover:bg-gray-200 transition-all"
@@ -331,18 +507,24 @@ const AdminUsers: React.FC<AdminUsersProps> = ({ onNavigate }) => {
                       <td className="px-6 py-4 font-bold">{user.name}</td>
                       <td className="px-6 py-4 text-gray-600">{user.email}</td>
                       <td className="px-6 py-4">
-                        <select
-                          value={user.role}
-                          onChange={(e) => handleRoleChange(user.id, e.target.value)}
-                          disabled={user.id === currentUser?.id}
-                          className={`px-4 py-2 rounded-xl font-bold text-sm border-0 outline-none ${
-                            getRoleBadgeColor(user.role)
-                          } ${user.id === currentUser?.id ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-                        >
-                          <option value="admin">{getRoleLabel('admin')}</option>
-                          <option value="employee">{getRoleLabel('employee')}</option>
-                          <option value="customer">{getRoleLabel('customer')}</option>
-                        </select>
+                        {(currentUser?.role === 'admin' || canEdit) ? (
+                          <select
+                            value={user.role}
+                            onChange={(e) => handleRoleChange(user.id, e.target.value)}
+                            disabled={user.id === currentUser?.id}
+                            className={`px-4 py-2 rounded-xl font-bold text-sm border-0 outline-none ${
+                              getRoleBadgeColor(user.role)
+                            } ${user.id === currentUser?.id ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                          >
+                            <option value="admin">{getRoleLabel('admin')}</option>
+                            <option value="employee">{getRoleLabel('employee')}</option>
+                            <option value="customer">{getRoleLabel('customer')}</option>
+                          </select>
+                        ) : (
+                          <span className={`px-4 py-2 rounded-xl font-bold text-sm ${getRoleBadgeColor(user.role)}`}>
+                            {getRoleLabel(user.role)}
+                          </span>
+                        )}
                       </td>
                       <td className="px-6 py-4">
                         <span className={`px-3 py-1 rounded-xl text-xs font-bold ${
@@ -358,38 +540,49 @@ const AdminUsers: React.FC<AdminUsersProps> = ({ onNavigate }) => {
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex gap-2 justify-end">
-                          <button
-                            onClick={() => handleEdit(user)}
-                            className="bg-blue-100 text-blue-600 p-2 rounded-xl hover:bg-blue-200 transition-all"
-                            title={t('edit')}
-                          >
-                            <Edit size={18} />
-                          </button>
-                          {user.id !== currentUser?.id && (
-                            <>
-                              <button
-                                onClick={() => handleToggleStatus(user.id)}
-                                className={`p-2 rounded-xl transition-all ${
-                                  user.is_active !== false
-                                    ? 'bg-yellow-100 text-yellow-600 hover:bg-yellow-200'
-                                    : 'bg-green-100 text-green-600 hover:bg-green-200'
-                                }`}
-                                title={user.is_active !== false ? t('deactivate') : t('activate')}
-                              >
-                                {user.is_active !== false ? (
-                                  <UserX size={18} />
-                                ) : (
-                                  <UserCheck size={18} />
-                                )}
-                              </button>
-                              <button
-                                onClick={() => handleDelete(user.id)}
-                                className="bg-red-100 text-red-600 p-2 rounded-xl hover:bg-red-200 transition-all"
-                                title={t('delete')}
-                              >
-                                <Trash2 size={18} />
-                              </button>
-                            </>
+                          {(currentUser?.role === 'admin' || canEdit) && (
+                            <button
+                              onClick={() => handleEdit(user)}
+                              className="bg-blue-100 text-blue-600 p-2 rounded-xl hover:bg-blue-200 transition-all"
+                              title={t('edit')}
+                            >
+                              <Edit size={18} />
+                            </button>
+                          )}
+                          {user.role === 'employee' && (currentUser?.role === 'admin' || canEdit) && (
+                            <button
+                              onClick={() => handleOpenPermissions(user)}
+                              className="bg-purple-100 text-purple-600 p-2 rounded-xl hover:bg-purple-200 transition-all"
+                              title={language === 'ar' ? 'إدارة الصلاحيات' : 'Manage Permissions'}
+                            >
+                              <Shield size={18} />
+                            </button>
+                          )}
+                          {user.id !== currentUser?.id && (currentUser?.role === 'admin' || canEdit) && (
+                            <button
+                              onClick={() => handleToggleStatus(user.id)}
+                              className={`p-2 rounded-xl transition-all ${
+                                user.is_active !== false
+                                  ? 'bg-yellow-100 text-yellow-600 hover:bg-yellow-200'
+                                  : 'bg-green-100 text-green-600 hover:bg-green-200'
+                              }`}
+                              title={user.is_active !== false ? t('deactivate') : t('activate')}
+                            >
+                              {user.is_active !== false ? (
+                                <UserX size={18} />
+                              ) : (
+                                <UserCheck size={18} />
+                              )}
+                            </button>
+                          )}
+                          {user.id !== currentUser?.id && (currentUser?.role === 'admin' || canDelete) && (
+                            <button
+                              onClick={() => handleDelete(user.id)}
+                              className="bg-red-100 text-red-600 p-2 rounded-xl hover:bg-red-200 transition-all"
+                              title={t('delete')}
+                            >
+                              <Trash2 size={18} />
+                            </button>
                           )}
                         </div>
                       </td>
@@ -541,6 +734,108 @@ const AdminUsers: React.FC<AdminUsersProps> = ({ onNavigate }) => {
                 onClick={() => {
                   setShowEditModal(false);
                   setEditingUser(null);
+                }}
+                className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-2xl font-bold hover:bg-gray-200 transition-all"
+              >
+                {language === 'ar' ? 'إلغاء' : 'Cancel'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Permissions Modal */}
+      {showPermissionsModal && selectedEmployee && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl p-8 max-w-3xl w-full shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-2xl font-black mb-2">
+                  {language === 'ar' ? 'إدارة صلاحيات الموظف' : 'Manage Employee Permissions'}
+                </h2>
+                <p className="text-gray-500 font-bold">
+                  {selectedEmployee.name} ({selectedEmployee.email})
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setShowPermissionsModal(false);
+                  setSelectedEmployee(null);
+                  setPermissions([]);
+                }}
+                className="bg-gray-100 hover:bg-gray-200 p-2 rounded-xl transition-all"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {loadingPermissions ? (
+              <div className="text-center py-12">
+                <div className="text-xl font-bold">{language === 'ar' ? 'جاري التحميل...' : 'Loading...'}</div>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {permissions.map((perm) => (
+                  <div key={perm.permission_type} className="bg-gray-50 rounded-2xl p-6 border-2 border-gray-100">
+                    <h3 className="text-lg font-black mb-4 text-primary">
+                      {getSectionLabel(perm.permission_type)}
+                    </h3>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <label className="flex items-center gap-2 cursor-pointer p-3 bg-white rounded-xl hover:bg-gray-50 transition-all">
+                        <input
+                          type="checkbox"
+                          checked={perm.can_view}
+                          onChange={(e) => updatePermission(perm.permission_type, 'can_view', e.target.checked)}
+                          className="w-5 h-5 rounded text-primary focus:ring-primary"
+                        />
+                        <span className="font-bold text-sm">{language === 'ar' ? 'عرض' : 'View'}</span>
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer p-3 bg-white rounded-xl hover:bg-gray-50 transition-all">
+                        <input
+                          type="checkbox"
+                          checked={perm.can_create}
+                          onChange={(e) => updatePermission(perm.permission_type, 'can_create', e.target.checked)}
+                          className="w-5 h-5 rounded text-primary focus:ring-primary"
+                        />
+                        <span className="font-bold text-sm">{language === 'ar' ? 'إنشاء' : 'Create'}</span>
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer p-3 bg-white rounded-xl hover:bg-gray-50 transition-all">
+                        <input
+                          type="checkbox"
+                          checked={perm.can_edit}
+                          onChange={(e) => updatePermission(perm.permission_type, 'can_edit', e.target.checked)}
+                          className="w-5 h-5 rounded text-primary focus:ring-primary"
+                        />
+                        <span className="font-bold text-sm">{language === 'ar' ? 'تعديل' : 'Edit'}</span>
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer p-3 bg-white rounded-xl hover:bg-gray-50 transition-all">
+                        <input
+                          type="checkbox"
+                          checked={perm.can_delete}
+                          onChange={(e) => updatePermission(perm.permission_type, 'can_delete', e.target.checked)}
+                          className="w-5 h-5 rounded text-primary focus:ring-primary"
+                        />
+                        <span className="font-bold text-sm">{language === 'ar' ? 'حذف' : 'Delete'}</span>
+                      </label>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="flex gap-4 mt-6">
+              <button
+                onClick={handleSavePermissions}
+                disabled={loadingPermissions}
+                className="flex-1 bg-primary text-white py-3 rounded-2xl font-bold hover:bg-secondary transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {language === 'ar' ? 'حفظ الصلاحيات' : 'Save Permissions'}
+              </button>
+              <button
+                onClick={() => {
+                  setShowPermissionsModal(false);
+                  setSelectedEmployee(null);
+                  setPermissions([]);
                 }}
                 className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-2xl font-bold hover:bg-gray-200 transition-all"
               >

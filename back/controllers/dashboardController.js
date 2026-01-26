@@ -80,17 +80,40 @@ export const getDashboard = async (req, res) => {
         }, {})
       };
     } else if (user.role === 'employee') {
-      // Employee dashboard - get permissions
+      // Employee dashboard - get permissions (only those with can_view = true)
       const [permissions] = await pool.execute(
-        'SELECT * FROM employee_permissions WHERE employee_id = ?',
+        'SELECT * FROM employee_permissions WHERE employee_id = ? AND can_view = 1',
         [userId]
       );
       
-      dashboardData.permissions = permissions;
+      // Convert MySQL TINYINT(1) to boolean for consistency
+      // Handle both numeric (1/0) and boolean (true/false) values
+      const formattedPermissions = permissions.map(perm => {
+        const convertToBoolean = (value) => {
+          if (value === true || value === 1 || value === '1' || value === 'true') return true;
+          if (value === false || value === 0 || value === '0' || value === 'false') return false;
+          return Boolean(value);
+        };
+        
+        return {
+          ...perm,
+          can_view: convertToBoolean(perm.can_view),
+          can_create: convertToBoolean(perm.can_create),
+          can_edit: convertToBoolean(perm.can_edit),
+          can_delete: convertToBoolean(perm.can_delete)
+        };
+      });
+      
+      console.log('Formatted permissions:', formattedPermissions);
+      dashboardData.permissions = formattedPermissions;
       
       // Get stats based on permissions
       const stats = {};
-      for (const perm of permissions) {
+      for (const perm of formattedPermissions) {
+        if (perm.permission_type === 'users' && perm.can_view) {
+          const [count] = await pool.execute('SELECT COUNT(*) as count FROM users WHERE role = "customer"');
+          stats.usersCount = count[0]?.count || 0;
+        }
         if (perm.permission_type === 'products' && perm.can_view) {
           const [count] = await pool.execute('SELECT COUNT(*) as count FROM products');
           stats.productsCount = count[0]?.count || 0;
@@ -109,27 +132,82 @@ export const getDashboard = async (req, res) => {
       // Customer dashboard
       let ordersCount = 0;
       let totalSpent = 0;
+      let recentOrders = [];
+      let ordersByStatus = {};
+      let recommendedProducts = [];
       
       try {
+        // Get orders count
         const [orders] = await pool.execute(
           'SELECT COUNT(*) as count FROM orders WHERE user_id = ?',
           [userId]
         );
         ordersCount = orders[0]?.count || 0;
         
+        // Get total spent (only delivered orders)
         const [totals] = await pool.execute(
           'SELECT COALESCE(SUM(total_amount), 0) as total FROM orders WHERE user_id = ? AND status = "delivered"',
           [userId]
         );
         totalSpent = parseFloat(totals[0]?.total || 0);
+        
+        // Get recent orders (last 5)
+        const [recentOrdersData] = await pool.execute(
+          `SELECT id, total_amount, status, created_at, payment_method
+           FROM orders 
+           WHERE user_id = ?
+           ORDER BY created_at DESC
+           LIMIT 5`,
+          [userId]
+        );
+        // Convert total_amount to number
+        recentOrders = recentOrdersData.map(order => ({
+          ...order,
+          total_amount: parseFloat(order.total_amount || 0)
+        }));
+        
+        // Get orders by status
+        const [ordersByStatusData] = await pool.execute(
+          `SELECT status, COUNT(*) as count 
+           FROM orders 
+           WHERE user_id = ?
+           GROUP BY status`,
+          [userId]
+        );
+        ordersByStatus = ordersByStatusData.reduce((acc, item) => {
+          acc[item.status] = item.count;
+          return acc;
+        }, {});
+        
+        // Get recommended products (best sellers or new arrivals - limit 6)
+        const [products] = await pool.execute(
+          `SELECT p.id, p.name, p.name_en, p.name_ar, p.price, p.old_price, 
+                  p.image_url, p.rating, p.reviews_count, p.slug,
+                  (SELECT pi.image_url FROM product_images pi 
+                   WHERE pi.product_id = p.id AND pi.is_primary = 1 
+                   LIMIT 1) as primary_image
+           FROM products p
+           WHERE p.is_active = 1
+           ORDER BY p.rating DESC, p.reviews_count DESC, p.created_at DESC
+           LIMIT 6`
+        );
+        
+        // Use primary_image if available, otherwise use image_url
+        recommendedProducts = products.map(product => ({
+          ...product,
+          image_url: product.primary_image || product.image_url
+        }));
       } catch (err) {
-        console.log('Orders table not available');
+        console.log('Error fetching customer dashboard data:', err);
       }
       
       dashboardData.stats = {
         ordersCount,
         totalSpent,
-        memberSince: user.created_at
+        memberSince: user.created_at,
+        recentOrders,
+        ordersByStatus,
+        recommendedProducts
       };
     }
 

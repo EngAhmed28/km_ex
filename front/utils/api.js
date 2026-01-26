@@ -190,3 +190,30 @@ export const ordersAPI = {
     });
   },
 };
+
+// Admin API functions
+export const adminAPI = {
+  getEmployeePermissions: async (employeeId) => {
+    // Get permissions from employee data
+    const response = await apiRequest('/admin/employees', {
+      method: 'GET',
+    });
+    if (response.success && response.data && response.data.employees) {
+      const employee = response.data.employees.find((emp) => emp.id === parseInt(employeeId));
+      return {
+        success: true,
+        data: {
+          permissions: employee?.permissions || []
+        }
+      };
+    }
+    return { success: false, data: { permissions: [] } };
+  },
+
+  setEmployeePermissions: async (employeeId, permissions) => {
+    return apiRequest(`/admin/employees/${employeeId}/permissions`, {
+      method: 'PUT',
+      body: { permissions },
+    });
+  },
+};

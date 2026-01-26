@@ -7,7 +7,7 @@ import {
   deleteProduct, 
   toggleProductStatus 
 } from '../controllers/productController.js';
-import { requireAdmin } from '../middleware/roleCheck.js';
+import { requireAdmin, requireAdminOrPermission } from '../middleware/roleCheck.js';
 import { authenticateToken } from '../middleware/auth.js';
 import { body, param, query } from 'express-validator';
 import { handleValidationErrors } from '../middleware/validation.js';
@@ -34,7 +34,7 @@ router.get('/:id', [
 ], getProductById);
 
 // Admin routes - get all products (including inactive)
-router.get('/admin/all', authenticateToken, requireAdmin, (req, res, next) => {
+router.get('/admin/all', authenticateToken, requireAdminOrPermission('products', 'view'), (req, res, next) => {
   // Set show_all to true to show all products including inactive ones
   req.query.show_all = 'true';
   delete req.query.is_active;
@@ -43,7 +43,6 @@ router.get('/admin/all', authenticateToken, requireAdmin, (req, res, next) => {
 
 // Admin routes
 router.use(authenticateToken);
-router.use(requireAdmin);
 
 router.post('/', [
   body('name_ar').optional({ checkFalsy: true }).trim().isLength({ min: 2, max: 255 }).withMessage('الاسم العربي يجب أن يكون بين 2 و 255 حرف'),
@@ -168,16 +167,16 @@ router.put('/:id', [
     return typeof value === 'boolean' || value === 'true' || value === 'false' || value === 1 || value === 0;
   }).withMessage('حالة المنتج يجب أن تكون true أو false'),
   handleValidationErrors
-], updateProduct);
+], requireAdminOrPermission('products', 'edit'), updateProduct);
 
 router.put('/:id/toggle-status', [
   param('id').isInt().withMessage('معرف المنتج غير صحيح'),
   handleValidationErrors
-], toggleProductStatus);
+], requireAdminOrPermission('products', 'edit'), toggleProductStatus);
 
 router.delete('/:id', [
   param('id').isInt().withMessage('معرف المنتج غير صحيح'),
   handleValidationErrors
-], deleteProduct);
+], requireAdminOrPermission('products', 'delete'), deleteProduct);
 
 export default router;

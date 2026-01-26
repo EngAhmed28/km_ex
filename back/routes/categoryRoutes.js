@@ -1,6 +1,6 @@
 import express from 'express';
 import { getAllCategories, getCategoryById, createCategory, updateCategory, deleteCategory, toggleCategoryStatus } from '../controllers/categoryController.js';
-import { requireAdmin } from '../middleware/roleCheck.js';
+import { requireAdmin, requireAdminOrPermission } from '../middleware/roleCheck.js';
 import { authenticateToken } from '../middleware/auth.js';
 import { body, param } from 'express-validator';
 import { handleValidationErrors } from '../middleware/validation.js';
@@ -20,7 +20,7 @@ router.get('/:id', [
 ], getCategoryById);
 
 // Admin routes - get all categories (including inactive)
-router.get('/admin/all', authenticateToken, requireAdmin, (req, res, next) => {
+router.get('/admin/all', authenticateToken, requireAdminOrPermission('categories', 'view'), (req, res, next) => {
   // Set show_all to true to show all categories including inactive ones
   req.query.show_all = 'true';
   delete req.query.is_active;
@@ -29,7 +29,6 @@ router.get('/admin/all', authenticateToken, requireAdmin, (req, res, next) => {
 
 // Admin routes
 router.use(authenticateToken);
-router.use(requireAdmin);
 
 router.post('/', [
   body('name').trim().notEmpty().withMessage('اسم القسم مطلوب').isLength({ min: 2, max: 255 }).withMessage('الاسم يجب أن يكون بين 2 و 255 حرف'),
@@ -55,7 +54,7 @@ router.post('/', [
     return typeof value === 'boolean' || value === 'true' || value === 'false' || value === 1 || value === 0;
   }).withMessage('حالة القسم يجب أن تكون true أو false'),
   handleValidationErrors
-], createCategory);
+], requireAdminOrPermission('categories', 'create'), createCategory);
 
 router.put('/:id', [
   param('id').isInt().withMessage('معرف القسم غير صحيح'),
@@ -82,16 +81,16 @@ router.put('/:id', [
     return typeof value === 'boolean' || value === 'true' || value === 'false' || value === 1 || value === 0;
   }).withMessage('حالة القسم يجب أن تكون true أو false'),
   handleValidationErrors
-], updateCategory);
+], requireAdminOrPermission('categories', 'edit'), updateCategory);
 
 router.put('/:id/toggle-status', [
   param('id').isInt().withMessage('معرف القسم غير صحيح'),
   handleValidationErrors
-], toggleCategoryStatus);
+], requireAdminOrPermission('categories', 'edit'), toggleCategoryStatus);
 
 router.delete('/:id', [
   param('id').isInt().withMessage('معرف القسم غير صحيح'),
   handleValidationErrors
-], deleteCategory);
+], requireAdminOrPermission('categories', 'delete'), deleteCategory);
 
 export default router;

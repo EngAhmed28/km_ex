@@ -29,6 +29,43 @@ const Header: React.FC<HeaderProps> = ({ onNavigate }) => {
     }
   };
 
+  const getUserRoleInfo = (role: string) => {
+    switch (role) {
+      case 'admin':
+        return {
+          label: language === 'ar' ? 'مدير' : 'Admin',
+          color: 'bg-red-500',
+          textColor: 'text-red-500',
+          bgColor: 'bg-red-50',
+          borderColor: 'border-red-200'
+        };
+      case 'employee':
+        return {
+          label: language === 'ar' ? 'موظف' : 'Employee',
+          color: 'bg-blue-500',
+          textColor: 'text-blue-500',
+          bgColor: 'bg-blue-50',
+          borderColor: 'border-blue-200'
+        };
+      case 'customer':
+        return {
+          label: language === 'ar' ? 'عميل' : 'Customer',
+          color: 'bg-green-500',
+          textColor: 'text-green-500',
+          bgColor: 'bg-green-50',
+          borderColor: 'border-green-200'
+        };
+      default:
+        return {
+          label: language === 'ar' ? 'مستخدم' : 'User',
+          color: 'bg-gray-500',
+          textColor: 'text-gray-500',
+          bgColor: 'bg-gray-50',
+          borderColor: 'border-gray-200'
+        };
+    }
+  };
+
   return (
     <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md shadow-sm border-b border-gray-100">
       <div className="container mx-auto px-4">
@@ -105,19 +142,29 @@ const Header: React.FC<HeaderProps> = ({ onNavigate }) => {
                 <div className="flex items-center gap-1">
                   <button 
                     onClick={() => {
-                      if (user?.role === 'admin') {
+                      if (user?.role === 'admin' || user?.role === 'employee') {
                         onNavigate('admin-dashboard');
                       } else {
                         onNavigate('dashboard');
                       }
                     }}
-                    className="hidden sm:flex items-center gap-2 p-1.5 pr-4 hover:bg-accent rounded-2xl transition-all cursor-pointer" 
+                    className="hidden sm:flex items-center gap-2 p-1.5 pr-4 hover:bg-accent rounded-2xl transition-all cursor-pointer group relative" 
                     title="حسابي"
                   >
                     <span className="text-xs font-black text-gray-700">{user?.name}</span>
-                    <div className="w-8 h-8 bg-primary/10 text-primary rounded-xl flex items-center justify-center font-black">
-                      {user?.name.charAt(0)}
+                    <div className="relative">
+                      <div className={`w-8 h-8 ${user?.role ? getUserRoleInfo(user.role).bgColor : 'bg-primary/10'} ${user?.role ? getUserRoleInfo(user.role).textColor : 'text-primary'} rounded-xl flex items-center justify-center font-black border-2 ${user?.role ? getUserRoleInfo(user.role).borderColor : 'border-transparent'}`}>
+                        {user?.name.charAt(0)}
+                      </div>
+                      {user?.role && (
+                        <div className={`absolute -bottom-1 -right-1 w-3 h-3 ${getUserRoleInfo(user.role).color} rounded-full border-2 border-white`}></div>
+                      )}
                     </div>
+                    {user?.role && (
+                      <span className={`text-[10px] font-black px-2 py-0.5 rounded-lg ${getUserRoleInfo(user.role).bgColor} ${getUserRoleInfo(user.role).textColor} border ${getUserRoleInfo(user.role).borderColor}`}>
+                        {getUserRoleInfo(user.role).label}
+                      </span>
+                    )}
                   </button>
                   <button onClick={logout} className="p-2.5 hover:bg-accent rounded-2xl text-gray-400 hover:text-primary transition-all" title={t('logout')}>
                     <LogOut size={20} />
@@ -174,19 +221,31 @@ const Header: React.FC<HeaderProps> = ({ onNavigate }) => {
             <button onClick={() => { onNavigate('bestsellers'); setIsMenuOpen(false); }} className="text-right border-b pb-4 border-accent hover:text-primary transition-colors">{t('bestSellers')}</button>
             <button onClick={() => { onNavigate('newarrivals'); setIsMenuOpen(false); }} className="text-right border-b pb-4 border-accent hover:text-primary transition-colors">{t('newArrivals')}</button>
             {isAuthenticated && (
-              <button 
-                onClick={() => { 
-                  if (user?.role === 'admin') {
-                    onNavigate('admin-dashboard');
-                  } else {
-                    onNavigate('dashboard');
-                  }
-                  setIsMenuOpen(false); 
-                }} 
-                className="text-right border-b pb-4 border-accent hover:text-primary transition-colors"
-              >
-                حسابي / Dashboard
-              </button>
+              <div className="border-b pb-4 border-accent">
+                <button 
+                  onClick={() => { 
+                    if (user?.role === 'admin' || user?.role === 'employee') {
+                      onNavigate('admin-dashboard');
+                    } else {
+                      onNavigate('dashboard');
+                    }
+                    setIsMenuOpen(false); 
+                  }} 
+                  className="w-full text-right hover:text-primary transition-colors mb-2"
+                >
+                  {user?.role === 'admin' || user?.role === 'employee' 
+                    ? (language === 'ar' ? 'لوحة التحكم' : 'Dashboard')
+                    : (language === 'ar' ? 'حسابي' : 'My Account')}
+                </button>
+                {user?.role && (
+                  <div className="flex items-center justify-end gap-2">
+                    <span className="text-sm text-gray-500">{language === 'ar' ? 'نوع الحساب:' : 'Account Type:'}</span>
+                    <span className={`text-xs font-black px-3 py-1 rounded-lg ${getUserRoleInfo(user.role).bgColor} ${getUserRoleInfo(user.role).textColor} border ${getUserRoleInfo(user.role).borderColor}`}>
+                      {getUserRoleInfo(user.role).label}
+                    </span>
+                  </div>
+                )}
+              </div>
             )}
           </div>
         </div>

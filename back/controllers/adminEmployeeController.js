@@ -32,21 +32,24 @@ export const setEmployeePermissions = async (req, res) => {
       [employeeId]
     );
     
-    // Insert new permissions
+    // Insert new permissions - only save permissions that have at least can_view = true
     for (const perm of permissions) {
-      await pool.execute(
-        `INSERT INTO employee_permissions 
-         (employee_id, permission_type, can_view, can_create, can_edit, can_delete) 
-         VALUES (?, ?, ?, ?, ?, ?)`,
-        [
-          employeeId,
-          perm.permission_type,
-          perm.can_view || false,
-          perm.can_create || false,
-          perm.can_edit || false,
-          perm.can_delete || false
-        ]
-      );
+      // Only save if can_view is true (employee must have view permission to have any permissions)
+      if (perm.can_view === true) {
+        await pool.execute(
+          `INSERT INTO employee_permissions 
+           (employee_id, permission_type, can_view, can_create, can_edit, can_delete) 
+           VALUES (?, ?, ?, ?, ?, ?)`,
+          [
+            employeeId,
+            perm.permission_type,
+            perm.can_view || false,
+            perm.can_create || false,
+            perm.can_edit || false,
+            perm.can_delete || false
+          ]
+        );
+      }
     }
     
     // Get updated permissions

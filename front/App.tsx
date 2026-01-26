@@ -17,6 +17,7 @@ import NewArrivals from './pages/NewArrivals';
 import Checkout from './pages/Checkout';
 import Dashboard from './pages/Dashboard';
 import AdminDashboard from './pages/AdminDashboard';
+import Orders from './pages/Orders';
 
 const App: React.FC = () => {
   const [currentPage, setCurrentPage] = useState('home');
@@ -44,7 +45,8 @@ const App: React.FC = () => {
       case 'login': return <Login onNavigate={navigate} type="login" initialEmail={pageParams.email} />;
       case 'signup': return <Login onNavigate={navigate} type="signup" initialEmail={pageParams.email} />;
       case 'dashboard': return <Dashboard onNavigate={navigate} />;
-      case 'admin-dashboard': return <AdminDashboard onNavigate={navigate} />;
+      case 'admin-dashboard': return <AdminDashboard onNavigate={navigate} initialTab={pageParams.tab} />;
+      case 'orders': return <Orders onNavigate={navigate} />;
       case 'checkout': return <Checkout onNavigate={navigate} />;
       case 'forgot-password': return (
         <div className="container mx-auto px-4 py-32 text-center">

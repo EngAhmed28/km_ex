@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
-import { apiRequest } from '../utils/api';
+import { apiRequest, dashboardAPI } from '../utils/api';
 import { FolderTree, Search, Edit, Trash2, Plus, CheckCircle, XCircle } from 'lucide-react';
 
 interface AdminCategoriesProps {
@@ -35,10 +35,84 @@ const AdminCategories: React.FC<AdminCategoriesProps> = ({ onNavigate }) => {
   const [editImageFile, setEditImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>('');
   const [imageErrors, setImageErrors] = useState({ add: '', edit: '' });
+  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
+  const [canCreate, setCanCreate] = useState(false);
+  const [canEdit, setCanEdit] = useState(false);
+  const [canDelete, setCanDelete] = useState(false);
 
   useEffect(() => {
-    fetchCategories();
+    checkPermissions();
   }, []);
+
+  const checkPermissions = async () => {
+    // Admin always has permission
+    if (currentUser?.role === 'admin') {
+      setHasPermission(true);
+      fetchCategories();
+      return;
+    }
+
+    // For employees, check permissions
+    if (currentUser?.role === 'employee') {
+      try {
+        const response = await dashboardAPI.getDashboard();
+        console.log('Dashboard response:', response);
+        console.log('Permissions:', response.data?.permissions);
+        
+        if (response.success && response.data?.permissions) {
+          // Check if can_view is true or 1 (MySQL returns 1/0, not true/false)
+          // Also handle string '1' and 'true' cases
+          const perm = response.data.permissions.find((p: any) => {
+            const canViewValue = p.can_view;
+            const hasView = canViewValue === true || 
+                           canViewValue === 1 || 
+                           canViewValue === '1' || 
+                           canViewValue === 'true' ||
+                           String(canViewValue).toLowerCase() === 'true';
+            const isCategories = p.permission_type === 'categories' || p.permission_type === 'category';
+            console.log('Checking permission:', { 
+              permission_type: p.permission_type, 
+              can_view: p.can_view,
+              can_view_type: typeof p.can_view,
+              hasView, 
+              isCategories,
+              match: hasView && isCategories
+            });
+            return isCategories && hasView;
+          });
+          
+          if (perm) {
+            console.log('Permission found:', perm);
+            setHasPermission(true);
+            // Convert MySQL 1/0 to boolean
+            setCanCreate(perm.can_create === true || perm.can_create === 1 || perm.can_create === '1');
+            setCanEdit(perm.can_edit === true || perm.can_edit === 1 || perm.can_edit === '1');
+            setCanDelete(perm.can_delete === true || perm.can_delete === 1 || perm.can_delete === '1');
+            fetchCategories();
+          } else {
+            console.log('No permission found for categories');
+            setHasPermission(false);
+            setError(language === 'ar' ? 'ليس لديك صلاحية للوصول إلى هذا المورد' : 'You do not have permission to access this resource');
+          }
+        } else {
+          console.log('No permissions in response or response not successful');
+          setHasPermission(false);
+          setError(language === 'ar' ? 'ليس لديك صلاحية للوصول إلى هذا المورد' : 'You do not have permission to access this resource');
+        }
+      } catch (err: any) {
+        console.error('Permission check error:', err);
+        setHasPermission(false);
+        setError(err.message || (language === 'ar' ? 'ليس لديك صلاحية للوصول إلى هذا المورد' : 'You do not have permission to access this resource'));
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      // Not admin or employee
+      setHasPermission(false);
+      setError(language === 'ar' ? 'ليس لديك صلاحية للوصول إلى هذا المورد' : 'You do not have permission to access this resource');
+      setLoading(false);
+    }
+  };
 
   const fetchCategories = async () => {
     try {
@@ -309,10 +383,30 @@ const AdminCategories: React.FC<AdminCategoriesProps> = ({ onNavigate }) => {
     (cat.name_en && cat.name_en.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
-  if (loading && categories.length === 0) {
+  if (loading && hasPermission === null) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-xl font-bold">{t('loading')}</div>
+      </div>
+    );
+  }
+
+  if (hasPermission === false) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-8 px-4">
+        <div className="max-w-7xl mx-auto">
+          <div className="bg-white rounded-3xl p-6 shadow-lg">
+            <div className="bg-red-50 text-red-600 p-4 rounded-2xl mb-6 font-bold border border-red-100">
+              {error || (language === 'ar' ? 'ليس لديك صلاحية للوصول إلى هذا المورد' : 'You do not have permission to access this resource')}
+            </div>
+            <button
+              onClick={() => onNavigate('admin-dashboard')}
+              className="bg-gray-100 text-gray-700 px-6 py-3 rounded-2xl font-bold hover:bg-gray-200 transition-all"
+            >
+              {language === 'ar' ? 'العودة للداشبورد' : 'Back to Dashboard'}
+            </button>
+          </div>
+        </div>
       </div>
     );
   }
@@ -328,13 +422,15 @@ const AdminCategories: React.FC<AdminCategoriesProps> = ({ onNavigate }) => {
               <p className="text-gray-500 font-bold">{t('manageAllCategories')}</p>
             </div>
             <div className="flex gap-4">
-              <button
-                onClick={() => setShowAddModal(true)}
-                className="bg-primary text-white px-6 py-3 rounded-2xl font-bold hover:bg-secondary transition-all flex items-center gap-2"
-              >
-                <Plus size={20} />
-                {t('addCategory')}
-              </button>
+              {(currentUser?.role === 'admin' || canCreate) && (
+                <button
+                  onClick={() => setShowAddModal(true)}
+                  className="bg-primary text-white px-6 py-3 rounded-2xl font-bold hover:bg-secondary transition-all flex items-center gap-2"
+                >
+                  <Plus size={20} />
+                  {t('addCategory')}
+                </button>
+              )}
               <button
                 onClick={() => onNavigate('admin-dashboard')}
                 className="bg-gray-100 text-gray-700 px-6 py-3 rounded-2xl font-bold hover:bg-gray-200 transition-all"
@@ -425,35 +521,41 @@ const AdminCategories: React.FC<AdminCategoriesProps> = ({ onNavigate }) => {
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex gap-2 justify-end">
-                          <button
-                            onClick={() => handleEdit(category)}
-                            className="bg-blue-100 text-blue-600 p-2 rounded-xl hover:bg-blue-200 transition-all"
-                            title={t('edit')}
-                          >
-                            <Edit size={18} />
-                          </button>
-                          <button
-                            onClick={() => handleToggleStatus(category.id)}
-                            className={`p-2 rounded-xl transition-all ${
-                              category.is_active
-                                ? 'bg-yellow-100 text-yellow-600 hover:bg-yellow-200'
-                                : 'bg-green-100 text-green-600 hover:bg-green-200'
-                            }`}
-                            title={category.is_active ? t('deactivate') : t('activate')}
-                          >
-                            {category.is_active ? (
-                              <XCircle size={18} />
-                            ) : (
-                              <CheckCircle size={18} />
-                            )}
-                          </button>
-                          <button
-                            onClick={() => handleDelete(category.id)}
-                            className="bg-red-100 text-red-600 p-2 rounded-xl hover:bg-red-200 transition-all"
-                            title={t('delete')}
-                          >
-                            <Trash2 size={18} />
-                          </button>
+                          {(currentUser?.role === 'admin' || canEdit) && (
+                            <>
+                              <button
+                                onClick={() => handleEdit(category)}
+                                className="bg-blue-100 text-blue-600 p-2 rounded-xl hover:bg-blue-200 transition-all"
+                                title={t('edit')}
+                              >
+                                <Edit size={18} />
+                              </button>
+                              <button
+                                onClick={() => handleToggleStatus(category.id)}
+                                className={`p-2 rounded-xl transition-all ${
+                                  category.is_active
+                                    ? 'bg-yellow-100 text-yellow-600 hover:bg-yellow-200'
+                                    : 'bg-green-100 text-green-600 hover:bg-green-200'
+                                }`}
+                                title={category.is_active ? t('deactivate') : t('activate')}
+                              >
+                                {category.is_active ? (
+                                  <XCircle size={18} />
+                                ) : (
+                                  <CheckCircle size={18} />
+                                )}
+                              </button>
+                            </>
+                          )}
+                          {(currentUser?.role === 'admin' || canDelete) && (
+                            <button
+                              onClick={() => handleDelete(category.id)}
+                              className="bg-red-100 text-red-600 p-2 rounded-xl hover:bg-red-200 transition-all"
+                              title={t('delete')}
+                            >
+                              <Trash2 size={18} />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>

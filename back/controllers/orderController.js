@@ -30,7 +30,7 @@ export const createOrder = async (req, res) => {
     } = req.body;
     
     // Get user_id from token if authenticated, otherwise null for guests
-    let user_id = req.user ? req.user.id : null;
+    let user_id = req.user ? (req.user.userId || req.user.id) : null;
     
     // Variables for account creation
     let accountCreated = false;
@@ -393,7 +393,7 @@ export const getAllOrders = async (req, res) => {
 // Get user orders (for logged-in users)
 export const getUserOrders = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user.userId || req.user.id;
     
     const [orders] = await pool.execute(
       `SELECT o.*, 
@@ -407,10 +407,33 @@ export const getUserOrders = async (req, res) => {
       [userId]
     );
     
+    // Get order items for each order
+    const ordersWithItems = await Promise.all(
+      orders.map(async (order) => {
+        const [items] = await pool.execute(
+          `SELECT oi.*, p.name as product_name, p.name_ar as product_name_ar, p.name_en as product_name_en
+           FROM order_items oi
+           LEFT JOIN products p ON oi.product_id = p.id
+           WHERE oi.order_id = ?`,
+          [order.id]
+        );
+        
+        return {
+          ...order,
+          items: items.map(item => ({
+            product_id: item.product_id,
+            product_name: item.product_name_ar || item.product_name_en || item.product_name || 'Unknown',
+            quantity: item.quantity,
+            price: parseFloat(item.price || 0)
+          }))
+        };
+      })
+    );
+    
     res.json({
       success: true,
       data: {
-        orders
+        orders: ordersWithItems
       }
     });
   } catch (error) {
@@ -427,7 +450,7 @@ export const getUserOrders = async (req, res) => {
 export const getOrderById = async (req, res) => {
   try {
     const { id } = req.params;
-    const userId = req.user ? req.user.id : null;
+    const userId = req.user ? (req.user.userId || req.user.id) : null;
     const userRole = req.user ? req.user.role : null;
     
     const [orders] = await pool.execute(

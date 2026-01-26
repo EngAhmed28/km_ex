@@ -1,7 +1,7 @@
 import express from 'express';
 import { createOrder, getUserOrders, getOrderById, getAllOrders, updateOrderStatus } from '../controllers/orderController.js';
 import { authenticateToken, optionalAuth } from '../middleware/auth.js';
-import { requireAdmin } from '../middleware/roleCheck.js';
+import { requireAdmin, requireAdminOrPermission } from '../middleware/roleCheck.js';
 import { body, param } from 'express-validator';
 import { handleValidationErrors } from '../middleware/validation.js';
 
@@ -24,10 +24,10 @@ router.post('/',
   createOrder
 );
 
-// Get all orders (Admin only)
+// Get all orders (Admin or employees with orders view permission)
 router.get('/',
   authenticateToken,
-  requireAdmin,
+  requireAdminOrPermission('orders', 'view'),
   getAllOrders
 );
 
@@ -37,7 +37,7 @@ router.get('/my-orders',
   getUserOrders
 );
 
-// Update order status (Admin only)
+// Update order status (Admin or employees with orders edit permission)
 router.put('/:id/status',
   [
     param('id').isInt().withMessage('معرف الطلب غير صحيح'),
@@ -45,7 +45,7 @@ router.put('/:id/status',
     handleValidationErrors
   ],
   authenticateToken,
-  requireAdmin,
+  requireAdminOrPermission('orders', 'edit'),
   updateOrderStatus
 );
 

@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
+import { useCart } from '../context/CartContext';
 import { dashboardAPI } from '../utils/api';
-import { User, ShoppingBag, DollarSign, Calendar, Package, FolderTree } from 'lucide-react';
+import { User, ShoppingBag, DollarSign, Calendar, Package, FolderTree, Clock, CheckCircle, Truck, Star, ArrowRight, Eye, Heart } from 'lucide-react';
 import AdminDashboard from './AdminDashboard';
+import ProductCard from '../components/ProductCard';
 
 interface DashboardProps {
   onNavigate: (page: string) => void;
@@ -27,12 +30,36 @@ interface DashboardData {
     productsCount?: number;
     ordersCount?: number;
     categoriesCount?: number;
+    recentOrders?: Array<{
+      id: number;
+      total_amount: number;
+      status: string;
+      created_at: string;
+      payment_method?: string;
+    }>;
+    ordersByStatus?: {
+      [key: string]: number;
+    };
+    recommendedProducts?: Array<{
+      id: number;
+      name: string;
+      name_en?: string;
+      name_ar?: string;
+      price: number;
+      old_price?: number;
+      image_url?: string;
+      rating: number;
+      reviews_count: number;
+      slug: string;
+    }>;
   };
   permissions?: any[];
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
   const { user, logout } = useAuth();
+  const { language, t } = useLanguage();
+  const { addToCart } = useCart();
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -154,6 +181,17 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
               </>
             ) : user.role === 'employee' ? (
               <>
+                {dashboardData.stats.usersCount !== undefined && (
+                  <div className="bg-white rounded-3xl p-6 shadow-lg">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="bg-blue-500/10 p-4 rounded-2xl">
+                        <User className="text-blue-500" size={24} />
+                      </div>
+                    </div>
+                    <h3 className="text-gray-500 text-sm font-bold mb-1">{language === 'ar' ? 'المستخدمين' : 'Users'}</h3>
+                    <p className="text-3xl font-black">{dashboardData.stats.usersCount}</p>
+                  </div>
+                )}
                 {dashboardData.stats.productsCount !== undefined && (
                   <div className="bg-white rounded-3xl p-6 shadow-lg">
                     <div className="flex items-center justify-between mb-4">
@@ -161,7 +199,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                         <Package className="text-green-500" size={24} />
                       </div>
                     </div>
-                    <h3 className="text-gray-500 text-sm font-bold mb-1">المنتجات</h3>
+                    <h3 className="text-gray-500 text-sm font-bold mb-1">{language === 'ar' ? 'المنتجات' : 'Products'}</h3>
                     <p className="text-3xl font-black">{dashboardData.stats.productsCount}</p>
                   </div>
                 )}
@@ -172,7 +210,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                         <ShoppingBag className="text-purple-500" size={24} />
                       </div>
                     </div>
-                    <h3 className="text-gray-500 text-sm font-bold mb-1">الطلبات</h3>
+                    <h3 className="text-gray-500 text-sm font-bold mb-1">{language === 'ar' ? 'الطلبات' : 'Orders'}</h3>
                     <p className="text-3xl font-black">{dashboardData.stats.ordersCount}</p>
                   </div>
                 )}
@@ -183,7 +221,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                         <FolderTree className="text-orange-500" size={24} />
                       </div>
                     </div>
-                    <h3 className="text-gray-500 text-sm font-bold mb-1">الأقسام</h3>
+                    <h3 className="text-gray-500 text-sm font-bold mb-1">{language === 'ar' ? 'الأقسام' : 'Categories'}</h3>
                     <p className="text-3xl font-black">{dashboardData.stats.categoriesCount}</p>
                   </div>
                 )}
@@ -191,17 +229,19 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                   <div className="bg-white rounded-3xl p-6 shadow-lg col-span-full">
                     <h3 className="text-xl font-black mb-4">صلاحياتك</h3>
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                      {dashboardData.permissions.map((perm: any, idx: number) => (
-                        <div key={idx} className="bg-gray-50 p-4 rounded-2xl">
-                          <h4 className="font-bold mb-2">{perm.permission_type}</h4>
-                          <div className="text-sm space-y-1">
-                            {perm.can_view && <p className="text-green-600">✓ عرض</p>}
-                            {perm.can_create && <p className="text-blue-600">✓ إنشاء</p>}
-                            {perm.can_edit && <p className="text-orange-600">✓ تعديل</p>}
-                            {perm.can_delete && <p className="text-red-600">✓ حذف</p>}
+                      {dashboardData.permissions
+                        .filter((perm: any) => perm.can_view === true)
+                        .map((perm: any, idx: number) => (
+                          <div key={idx} className="bg-gray-50 p-4 rounded-2xl">
+                            <h4 className="font-bold mb-2">{perm.permission_type}</h4>
+                            <div className="text-sm space-y-1">
+                              {perm.can_view && <p className="text-green-600">✓ عرض</p>}
+                              {perm.can_create && <p className="text-blue-600">✓ إنشاء</p>}
+                              {perm.can_edit && <p className="text-orange-600">✓ تعديل</p>}
+                              {perm.can_delete && <p className="text-red-600">✓ حذف</p>}
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        ))}
                     </div>
                   </div>
                 )}
@@ -210,23 +250,236 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
           </div>
         )}
 
+        {/* Orders by Status - Customer only */}
+        {user.role === 'customer' && dashboardData?.stats?.ordersByStatus && Object.keys(dashboardData.stats.ordersByStatus).length > 0 && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            {dashboardData.stats.ordersByStatus.pending > 0 && (
+              <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-xl p-4 border border-yellow-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-yellow-700 font-bold mb-1">{language === 'ar' ? 'قيد الانتظار' : 'Pending'}</p>
+                    <p className="text-2xl font-black text-yellow-800">{dashboardData.stats.ordersByStatus.pending}</p>
+                  </div>
+                  <Clock className="text-yellow-600" size={24} />
+                </div>
+              </div>
+            )}
+            {dashboardData.stats.ordersByStatus.processing > 0 && (
+              <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4 border border-blue-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-blue-700 font-bold mb-1">{language === 'ar' ? 'قيد المعالجة' : 'Processing'}</p>
+                    <p className="text-2xl font-black text-blue-800">{dashboardData.stats.ordersByStatus.processing}</p>
+                  </div>
+                  <Package className="text-blue-600" size={24} />
+                </div>
+              </div>
+            )}
+            {dashboardData.stats.ordersByStatus.shipped > 0 && (
+              <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-4 border border-purple-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-purple-700 font-bold mb-1">{language === 'ar' ? 'تم الشحن' : 'Shipped'}</p>
+                    <p className="text-2xl font-black text-purple-800">{dashboardData.stats.ordersByStatus.shipped}</p>
+                  </div>
+                  <Truck className="text-purple-600" size={24} />
+                </div>
+              </div>
+            )}
+            {dashboardData.stats.ordersByStatus.delivered > 0 && (
+              <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-4 border border-green-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-green-700 font-bold mb-1">{language === 'ar' ? 'تم التسليم' : 'Delivered'}</p>
+                    <p className="text-2xl font-black text-green-800">{dashboardData.stats.ordersByStatus.delivered}</p>
+                  </div>
+                  <CheckCircle className="text-green-600" size={24} />
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Recent Orders - Customer only */}
+        {user.role === 'customer' && dashboardData?.stats?.recentOrders && dashboardData.stats.recentOrders.length > 0 && (
+          <div className="bg-white rounded-3xl p-6 shadow-lg mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-2xl font-black flex items-center gap-2">
+                <ShoppingBag className="text-primary" size={24} />
+                {language === 'ar' ? 'طلباتي الأخيرة' : 'My Recent Orders'}
+              </h2>
+              <button
+                onClick={() => onNavigate('orders')}
+                className="text-primary hover:text-secondary font-bold text-sm flex items-center gap-1"
+              >
+                {language === 'ar' ? 'عرض الكل' : 'View All'}
+                <ArrowRight size={16} />
+              </button>
+            </div>
+            <div className="space-y-3">
+              {dashboardData.stats.recentOrders.map((order) => (
+                <div key={order.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
+                  <div className="flex items-center gap-4">
+                    <div className="bg-primary/10 p-3 rounded-xl">
+                      <ShoppingBag className="text-primary" size={20} />
+                    </div>
+                    <div>
+                      <p className="font-bold">#{order.id}</p>
+                      <p className="text-sm text-gray-500">
+                        {new Date(order.created_at).toLocaleDateString(language === 'ar' ? 'ar-SA' : 'en-US', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric'
+                        })}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-left">
+                    <p className="font-black text-primary mb-1">{parseFloat(order.total_amount || 0).toFixed(2)} {language === 'ar' ? 'ر.س' : 'SAR'}</p>
+                    <span className={`text-xs px-2 py-1 rounded-lg font-bold ${
+                      order.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                      order.status === 'processing' ? 'bg-blue-100 text-blue-800' :
+                      order.status === 'shipped' ? 'bg-purple-100 text-purple-800' :
+                      order.status === 'delivered' ? 'bg-green-100 text-green-800' :
+                      'bg-gray-100 text-gray-800'
+                    }`}>
+                      {order.status === 'pending' ? (language === 'ar' ? 'قيد الانتظار' : 'Pending') :
+                       order.status === 'processing' ? (language === 'ar' ? 'قيد المعالجة' : 'Processing') :
+                       order.status === 'shipped' ? (language === 'ar' ? 'تم الشحن' : 'Shipped') :
+                       order.status === 'delivered' ? (language === 'ar' ? 'تم التسليم' : 'Delivered') :
+                       order.status}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Recommended Products - Customer only */}
+        {user.role === 'customer' && dashboardData?.stats?.recommendedProducts && dashboardData.stats.recommendedProducts.length > 0 && (
+          <div className="bg-white rounded-3xl p-6 shadow-lg mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-2xl font-black flex items-center gap-2">
+                <Star className="text-primary" size={24} fill="currentColor" />
+                {language === 'ar' ? 'منتجات موصى بها' : 'Recommended Products'}
+              </h2>
+              <button
+                onClick={() => onNavigate('shop')}
+                className="text-primary hover:text-secondary font-bold text-sm flex items-center gap-1"
+              >
+                {language === 'ar' ? 'عرض الكل' : 'View All'}
+                <ArrowRight size={16} />
+              </button>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+              {dashboardData.stats.recommendedProducts.map((product) => {
+                // Format image URL
+                let imageUrl = product.image_url || '';
+                if (imageUrl && !imageUrl.startsWith('http') && imageUrl.startsWith('/')) {
+                  imageUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${imageUrl}`;
+                }
+                
+                const productData = {
+                  id: product.id.toString(),
+                  nameAr: product.name_ar || product.name,
+                  nameEn: product.name_en || product.name,
+                  name: product.name,
+                  price: product.price,
+                  oldPrice: product.old_price,
+                  image: imageUrl,
+                  rating: product.rating || 0,
+                  reviewsCount: product.reviews_count || 0,
+                  slug: product.slug,
+                  flavor: [] as string[]
+                };
+                return (
+                  <ProductCard
+                    key={product.id}
+                    product={productData}
+                    onClick={(id) => onNavigate('product', { id })}
+                    onAddToCart={(e, p) => addToCart(p, 1, p.flavor?.[0] || '')}
+                  />
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {/* Quick Actions */}
         <div className="bg-white rounded-3xl p-8 shadow-lg">
-          <h2 className="text-2xl font-black mb-6">إجراءات سريعة</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <button
-              onClick={() => onNavigate('shop')}
-              className="bg-primary text-white p-6 rounded-2xl font-bold hover:bg-secondary transition-all text-right"
-            >
-              تصفح المنتجات
-            </button>
-            <button
-              onClick={() => onNavigate('cart')}
-              className="bg-accent text-primary p-6 rounded-2xl font-bold hover:bg-gray-100 transition-all text-right"
-            >
-              سلة التسوق
-            </button>
-          </div>
+          <h2 className="text-2xl font-black mb-6">{language === 'ar' ? 'إجراءات سريعة' : 'Quick Actions'}</h2>
+          {user.role === 'customer' ? (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <button
+                onClick={() => onNavigate('shop')}
+                className="bg-primary text-white p-6 rounded-2xl font-bold hover:bg-secondary transition-all flex flex-col items-center gap-2"
+              >
+                <Package size={24} />
+                {language === 'ar' ? 'تصفح المنتجات' : 'Browse Products'}
+              </button>
+              <button
+                onClick={() => onNavigate('cart')}
+                className="bg-accent text-primary p-6 rounded-2xl font-bold hover:bg-gray-100 transition-all flex flex-col items-center gap-2"
+              >
+                <ShoppingBag size={24} />
+                {language === 'ar' ? 'سلة التسوق' : 'Shopping Cart'}
+              </button>
+              <button
+                onClick={() => onNavigate('newarrivals')}
+                className="bg-green-50 hover:bg-green-100 text-green-700 p-6 rounded-2xl font-bold transition-all flex flex-col items-center gap-2"
+              >
+                <Star size={24} />
+                {language === 'ar' ? 'وصل حديثاً' : 'New Arrivals'}
+              </button>
+              <button
+                onClick={() => onNavigate('bestsellers')}
+                className="bg-orange-50 hover:bg-orange-100 text-orange-700 p-6 rounded-2xl font-bold transition-all flex flex-col items-center gap-2"
+              >
+                <Truck size={24} />
+                {language === 'ar' ? 'الأكثر مبيعاً' : 'Best Sellers'}
+              </button>
+            </div>
+          ) : user.role === 'employee' && dashboardData?.permissions ? (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {dashboardData.permissions.find((p: any) => p.permission_type === 'users' && p.can_view) && (
+                <button
+                  onClick={() => onNavigate('admin-dashboard', { tab: 'users' })}
+                  className="bg-blue-50 hover:bg-blue-100 text-blue-700 p-6 rounded-2xl font-bold transition-all flex flex-col items-center gap-2"
+                >
+                  <User size={24} />
+                  {language === 'ar' ? 'إدارة المستخدمين' : 'Manage Users'}
+                </button>
+              )}
+              {dashboardData.permissions.find((p: any) => p.permission_type === 'categories' && p.can_view) && (
+                <button
+                  onClick={() => onNavigate('admin-dashboard', { tab: 'categories' })}
+                  className="bg-orange-50 hover:bg-orange-100 text-orange-700 p-6 rounded-2xl font-bold transition-all flex flex-col items-center gap-2"
+                >
+                  <FolderTree size={24} />
+                  {language === 'ar' ? 'إدارة الأقسام' : 'Manage Categories'}
+                </button>
+              )}
+              {dashboardData.permissions.find((p: any) => p.permission_type === 'products' && p.can_view) && (
+                <button
+                  onClick={() => onNavigate('admin-dashboard', { tab: 'products' })}
+                  className="bg-green-50 hover:bg-green-100 text-green-700 p-6 rounded-2xl font-bold transition-all flex flex-col items-center gap-2"
+                >
+                  <Package size={24} />
+                  {language === 'ar' ? 'إدارة المنتجات' : 'Manage Products'}
+                </button>
+              )}
+              {dashboardData.permissions.find((p: any) => p.permission_type === 'orders' && p.can_view) && (
+                <button
+                  onClick={() => onNavigate('admin-dashboard', { tab: 'orders' })}
+                  className="bg-purple-50 hover:bg-purple-100 text-purple-700 p-6 rounded-2xl font-bold transition-all flex flex-col items-center gap-2"
+                >
+                  <ShoppingBag size={24} />
+                  {language === 'ar' ? 'إدارة الطلبات' : 'Manage Orders'}
+                </button>
+              )}
+            </div>
+          ) : null}
         </div>
       </div>
     </div>

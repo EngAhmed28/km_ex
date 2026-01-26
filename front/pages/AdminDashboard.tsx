@@ -9,19 +9,20 @@ import AdminProducts from './AdminProducts';
 import AdminOrders from './AdminOrders';
 
 interface AdminDashboardProps {
-  onNavigate: (page: string) => void;
+  onNavigate: (page: string, params?: any) => void;
+  initialTab?: string;
 }
 
-const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) => {
+const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, initialTab }) => {
   const { user, logout } = useAuth();
   const { language, t } = useLanguage();
   const [dashboardData, setDashboardData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState(initialTab || (user?.role === 'admin' ? 'overview' : 'users'));
 
   useEffect(() => {
-    // Redirect to home if user is not admin or logged out
-    if (!user || user.role !== 'admin') {
+    // Redirect to home if user is not admin/employee or logged out
+    if (!user || (user.role !== 'admin' && user.role !== 'employee')) {
       onNavigate('home');
       return;
     }
@@ -30,8 +31,36 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) => {
       try {
         setLoading(true);
         const response = await dashboardAPI.getDashboard();
+        console.log('AdminDashboard - Dashboard response:', response);
+        console.log('AdminDashboard - Permissions:', response.data?.permissions);
         if (response.success) {
           setDashboardData(response.data);
+          // Set initial tab based on permissions for employees
+          if (user.role === 'employee') {
+            if (initialTab) {
+              setActiveTab(initialTab);
+            } else if (response.data?.permissions) {
+              // Set first available tab for employee based on permissions
+              const perms = response.data.permissions;
+              const hasPermission = (permissionType: string) => {
+                const perm = perms.find((p: any) => 
+                  p.permission_type === permissionType && 
+                  (p.can_view === true || p.can_view === 1 || p.can_view === '1')
+                );
+                return !!perm;
+              };
+              
+              if (hasPermission('users')) {
+                setActiveTab('users');
+              } else if (hasPermission('categories')) {
+                setActiveTab('categories');
+              } else if (hasPermission('products')) {
+                setActiveTab('products');
+              } else if (hasPermission('orders')) {
+                setActiveTab('orders');
+              }
+            }
+          }
         }
       } catch (err: any) {
         console.error('Dashboard error:', err);
@@ -41,9 +70,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) => {
     };
 
     fetchDashboardData();
-  }, [user, onNavigate]);
+  }, [user, onNavigate, initialTab]);
 
-  if (!user || user.role !== 'admin') {
+  if (!user || (user.role !== 'admin' && user.role !== 'employee')) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -90,104 +119,156 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) => {
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-3xl p-6 shadow-lg">
-            <div className="flex items-center justify-between mb-4">
-              <div className="bg-blue-500/10 p-4 rounded-2xl">
-                <Users className="text-blue-500" size={24} />
-              </div>
-            </div>
-            <h3 className="text-gray-500 text-sm font-bold mb-1">{t('totalUsers')}</h3>
-            <p className="text-3xl font-black">{stats.totalUsers || 0}</p>
-          </div>
+          {/* Show stats based on role and permissions */}
+          {/* Helper function to check if user has view permission */}
+          {(() => {
+            const hasPermission = (permissionType: string) => {
+              if (user.role === 'admin') return true;
+              if (!dashboardData?.permissions) return false;
+              const perm = dashboardData.permissions.find((p: any) => 
+                p.permission_type === permissionType && 
+                (p.can_view === true || p.can_view === 1 || p.can_view === '1')
+              );
+              return !!perm;
+            };
+            
+            return (
+              <>
+                {hasPermission('users') && (
+                  <div className="bg-white rounded-3xl p-6 shadow-lg">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="bg-blue-500/10 p-4 rounded-2xl">
+                        <Users className="text-blue-500" size={24} />
+                      </div>
+                    </div>
+                    <h3 className="text-gray-500 text-sm font-bold mb-1">{t('totalUsers')}</h3>
+                    <p className="text-3xl font-black">{stats.totalUsers || stats.usersCount || 0}</p>
+                  </div>
+                )}
 
-          <div className="bg-white rounded-3xl p-6 shadow-lg">
-            <div className="flex items-center justify-between mb-4">
-              <div className="bg-green-500/10 p-4 rounded-2xl">
-                <Package className="text-green-500" size={24} />
-              </div>
-            </div>
-            <h3 className="text-gray-500 text-sm font-bold mb-1">{t('products')}</h3>
-            <p className="text-3xl font-black">{stats.totalProducts || 0}</p>
-          </div>
+                {hasPermission('products') && (
+                  <div className="bg-white rounded-3xl p-6 shadow-lg">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="bg-green-500/10 p-4 rounded-2xl">
+                        <Package className="text-green-500" size={24} />
+                      </div>
+                    </div>
+                    <h3 className="text-gray-500 text-sm font-bold mb-1">{t('products')}</h3>
+                    <p className="text-3xl font-black">{stats.totalProducts || stats.productsCount || 0}</p>
+                  </div>
+                )}
 
-          <div className="bg-white rounded-3xl p-6 shadow-lg">
-            <div className="flex items-center justify-between mb-4">
-              <div className="bg-purple-500/10 p-4 rounded-2xl">
-                <ShoppingBag className="text-purple-500" size={24} />
-              </div>
-            </div>
-            <h3 className="text-gray-500 text-sm font-bold mb-1">{t('orders')}</h3>
-            <p className="text-3xl font-black">{stats.totalOrders || 0}</p>
-          </div>
+                {hasPermission('orders') && (
+                  <div className="bg-white rounded-3xl p-6 shadow-lg">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="bg-purple-500/10 p-4 rounded-2xl">
+                        <ShoppingBag className="text-purple-500" size={24} />
+                      </div>
+                    </div>
+                    <h3 className="text-gray-500 text-sm font-bold mb-1">{t('orders')}</h3>
+                    <p className="text-3xl font-black">{stats.totalOrders || stats.ordersCount || 0}</p>
+                  </div>
+                )}
 
-          <div className="bg-white rounded-3xl p-6 shadow-lg">
-            <div className="flex items-center justify-between mb-4">
-              <div className="bg-orange-500/10 p-4 rounded-2xl">
-                <FolderTree className="text-orange-500" size={24} />
-              </div>
-            </div>
-            <h3 className="text-gray-500 text-sm font-bold mb-1">{t('categories')}</h3>
-            <p className="text-3xl font-black">{stats.totalCategories || 0}</p>
-          </div>
+                {hasPermission('categories') && (
+                  <div className="bg-white rounded-3xl p-6 shadow-lg">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="bg-orange-500/10 p-4 rounded-2xl">
+                        <FolderTree className="text-orange-500" size={24} />
+                      </div>
+                    </div>
+                    <h3 className="text-gray-500 text-sm font-bold mb-1">{t('categories')}</h3>
+                    <p className="text-3xl font-black">{stats.totalCategories || stats.categoriesCount || 0}</p>
+                  </div>
+                )}
+              </>
+            );
+          })()}
         </div>
 
         {/* Navigation Tabs */}
         <div className="bg-white rounded-3xl p-6 shadow-lg mb-6">
           <div className="flex gap-4 border-b border-gray-200 pb-4">
-            <button
-              onClick={() => setActiveTab('overview')}
-              className={`px-6 py-3 rounded-2xl font-bold transition-all ${
-                activeTab === 'overview'
-                  ? 'bg-primary text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              {t('overview')}
-            </button>
-            <button
-              onClick={() => setActiveTab('users')}
-              className={`px-6 py-3 rounded-2xl font-bold transition-all ${
-                activeTab === 'users'
-                  ? 'bg-primary text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              {t('userManagement')}
-            </button>
-            <button
-              onClick={() => setActiveTab('products')}
-              className={`px-6 py-3 rounded-2xl font-bold transition-all ${
-                activeTab === 'products'
-                  ? 'bg-primary text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              {t('productManagement')}
-            </button>
-            <button
-              onClick={() => setActiveTab('categories')}
-              className={`px-6 py-3 rounded-2xl font-bold transition-all ${
-                activeTab === 'categories'
-                  ? 'bg-primary text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              {t('categoryManagement')}
-            </button>
-            <button
-              onClick={() => setActiveTab('orders')}
-              className={`px-6 py-3 rounded-2xl font-bold transition-all ${
-                activeTab === 'orders'
-                  ? 'bg-primary text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              {t('orderManagement')}
-            </button>
+            {user.role === 'admin' ? (
+              <button
+                onClick={() => setActiveTab('overview')}
+                className={`px-6 py-3 rounded-2xl font-bold transition-all ${
+                  activeTab === 'overview'
+                    ? 'bg-primary text-white'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                {t('overview')}
+              </button>
+            ) : null}
+            {(() => {
+              const hasPermission = (permissionType: string) => {
+                if (user.role === 'admin') return true;
+                if (!dashboardData?.permissions) return false;
+                const perm = dashboardData.permissions.find((p: any) => 
+                  p.permission_type === permissionType && 
+                  (p.can_view === true || p.can_view === 1 || p.can_view === '1')
+                );
+                return !!perm;
+              };
+              
+              return (
+                <>
+                  {hasPermission('users') && (
+                    <button
+                      onClick={() => setActiveTab('users')}
+                      className={`px-6 py-3 rounded-2xl font-bold transition-all ${
+                        activeTab === 'users'
+                          ? 'bg-primary text-white'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      }`}
+                    >
+                      {t('userManagement')}
+                    </button>
+                  )}
+                  {hasPermission('categories') && (
+                    <button
+                      onClick={() => setActiveTab('categories')}
+                      className={`px-6 py-3 rounded-2xl font-bold transition-all ${
+                        activeTab === 'categories'
+                          ? 'bg-primary text-white'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      }`}
+                    >
+                      {t('categoryManagement')}
+                    </button>
+                  )}
+                  {hasPermission('products') && (
+                    <button
+                      onClick={() => setActiveTab('products')}
+                      className={`px-6 py-3 rounded-2xl font-bold transition-all ${
+                        activeTab === 'products'
+                          ? 'bg-primary text-white'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      }`}
+                    >
+                      {t('productManagement')}
+                    </button>
+                  )}
+                  {hasPermission('orders') && (
+                    <button
+                      onClick={() => setActiveTab('orders')}
+                      className={`px-6 py-3 rounded-2xl font-bold transition-all ${
+                        activeTab === 'orders'
+                          ? 'bg-primary text-white'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      }`}
+                    >
+                      {t('orderManagement')}
+                    </button>
+                  )}
+                </>
+              );
+            })()}
           </div>
 
           <div className="mt-6">
-            {activeTab === 'overview' && (
+            {activeTab === 'overview' && user.role === 'admin' && (
               <div className="space-y-6">
                 {/* Welcome Section */}
                 <div className="bg-gradient-to-r from-primary/10 to-primary/5 rounded-2xl p-6 border-2 border-primary/20">
@@ -352,18 +433,18 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) => {
                       {language === 'ar' ? 'إدارة المستخدمين' : 'Manage Users'}
                     </button>
                     <button
-                      onClick={() => setActiveTab('products')}
-                      className="bg-green-50 hover:bg-green-100 text-green-700 p-4 rounded-xl font-bold transition-all flex flex-col items-center gap-2"
-                    >
-                      <Package size={24} />
-                      {language === 'ar' ? 'إدارة المنتجات' : 'Manage Products'}
-                    </button>
-                    <button
                       onClick={() => setActiveTab('categories')}
                       className="bg-orange-50 hover:bg-orange-100 text-orange-700 p-4 rounded-xl font-bold transition-all flex flex-col items-center gap-2"
                     >
                       <FolderTree size={24} />
                       {language === 'ar' ? 'إدارة الأقسام' : 'Manage Categories'}
+                    </button>
+                    <button
+                      onClick={() => setActiveTab('products')}
+                      className="bg-green-50 hover:bg-green-100 text-green-700 p-4 rounded-xl font-bold transition-all flex flex-col items-center gap-2"
+                    >
+                      <Package size={24} />
+                      {language === 'ar' ? 'إدارة المنتجات' : 'Manage Products'}
                     </button>
                     <button
                       onClick={() => setActiveTab('orders')}
