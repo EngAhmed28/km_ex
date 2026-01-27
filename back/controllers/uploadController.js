@@ -96,3 +96,63 @@ export const uploadProductImages = async (req, res) => {
     });
   }
 };
+
+// Upload brand image
+export const uploadBrandImage = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'لم يتم اختيار صورة'
+      });
+    }
+
+    // Return the file URL
+    const fileUrl = `/uploads/brands/${req.file.filename}`;
+    
+    res.json({
+      success: true,
+      message: 'تم رفع الصورة بنجاح',
+      data: {
+        url: fileUrl,
+        filename: req.file.filename
+      }
+    });
+  } catch (error) {
+    console.error('Upload error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'حدث خطأ أثناء رفع الصورة'
+    });
+  }
+};
+
+// Upload deal image
+export const uploadDealImage = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'لم يتم اختيار صورة'
+      });
+    }
+
+    // Return the file URL
+    const fileUrl = `/uploads/deals/${req.file.filename}`;
+    
+    res.json({
+      success: true,
+      message: 'تم رفع الصورة بنجاح',
+      data: {
+        url: fileUrl,
+        filename: req.file.filename
+      }
+    });
+  } catch (error) {
+    console.error('Upload error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'حدث خطأ أثناء رفع الصورة'
+    });
+  }
+};

@@ -2,12 +2,16 @@ import express from 'express';
 import { 
   uploadCategoryImage as uploadCategoryMiddleware, 
   uploadProductImage as uploadProductMiddleware,
-  uploadProductImages as uploadProductImagesMiddleware 
+  uploadProductImages as uploadProductImagesMiddleware,
+  uploadBrandImage as uploadBrandImageMiddleware,
+  uploadDealImage as uploadDealImageMiddleware
 } from '../middleware/upload.js';
 import { 
   uploadCategoryImage, 
   uploadProductImage,
-  uploadProductImages 
+  uploadProductImages,
+  uploadBrandImage,
+  uploadDealImage
 } from '../controllers/uploadController.js';
 import { authenticateToken } from '../middleware/auth.js';
 import { requireAdmin } from '../middleware/roleCheck.js';
@@ -52,5 +56,31 @@ router.post('/products', authenticateToken, requireAdmin, (req, res, next) => {
     next();
   });
 }, uploadProductImages);
+
+// Upload brand image (Admin only)
+router.post('/brand', authenticateToken, requireAdmin, (req, res, next) => {
+  uploadBrandImageMiddleware(req, res, (err) => {
+    if (err) {
+      return res.status(400).json({
+        success: false,
+        message: err.message || 'حدث خطأ أثناء رفع الصورة'
+      });
+    }
+    next();
+  });
+}, uploadBrandImage);
+
+// Upload deal image (Admin only)
+router.post('/deal', authenticateToken, requireAdmin, (req, res, next) => {
+  uploadDealImageMiddleware(req, res, (err) => {
+    if (err) {
+      return res.status(400).json({
+        success: false,
+        message: err.message || 'حدث خطأ أثناء رفع الصورة'
+      });
+    }
+    next();
+  });
+}, uploadDealImage);
 
 export default router;

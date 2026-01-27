@@ -276,3 +276,158 @@ export const reviewAPI = {
     });
   },
 };
+
+// Brands API functions
+export const brandsAPI = {
+  getAllBrands: async (isActive) => {
+    const queryParams = new URLSearchParams();
+    if (isActive !== undefined) queryParams.append('is_active', isActive);
+    const queryString = queryParams.toString();
+    const url = `/brands${queryString ? `?${queryString}` : ''}`;
+    return apiRequest(url, { method: 'GET' });
+  },
+
+  getBrandById: async (id) => {
+    return apiRequest(`/brands/${id}`, { method: 'GET' });
+  },
+
+  createBrand: async (brandData) => {
+    return apiRequest('/brands', {
+      method: 'POST',
+      body: brandData,
+    });
+  },
+
+  updateBrand: async (id, brandData) => {
+    return apiRequest(`/brands/${id}`, {
+      method: 'PUT',
+      body: brandData,
+    });
+  },
+
+  deleteBrand: async (id) => {
+    return apiRequest(`/brands/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
+  toggleBrandStatus: async (id) => {
+    return apiRequest(`/brands/${id}/toggle-status`, {
+      method: 'PUT',
+    });
+  },
+};
+
+// Stats API functions
+export const statsAPI = {
+  getAllStats: async (isActive) => {
+    const queryParams = new URLSearchParams();
+    if (isActive !== undefined) queryParams.append('is_active', isActive);
+    const queryString = queryParams.toString();
+    const url = `/stats${queryString ? `?${queryString}` : ''}`;
+    return apiRequest(url, { method: 'GET' });
+  },
+
+  getStatById: async (id) => {
+    return apiRequest(`/stats/${id}`, { method: 'GET' });
+  },
+
+  updateStat: async (id, statData) => {
+    return apiRequest(`/stats/${id}`, {
+      method: 'PUT',
+      body: statData,
+    });
+  },
+
+  toggleStatStatus: async (id) => {
+    return apiRequest(`/stats/${id}/toggle-status`, {
+      method: 'PUT',
+    });
+  },
+};
+
+// Deals API functions
+export const dealsAPI = {
+  getActiveDeal: async () => {
+    return apiRequest('/deals/active', { method: 'GET' });
+  },
+
+  getAllDeals: async (isActive) => {
+    const queryParams = new URLSearchParams();
+    if (isActive !== undefined) queryParams.append('is_active', isActive);
+    const queryString = queryParams.toString();
+    const url = `/deals${queryString ? `?${queryString}` : ''}`;
+    return apiRequest(url, { method: 'GET' });
+  },
+
+  getDealById: async (id) => {
+    return apiRequest(`/deals/${id}`, { method: 'GET' });
+  },
+
+  createDeal: async (dealData) => {
+    return apiRequest('/deals', {
+      method: 'POST',
+      body: dealData,
+    });
+  },
+
+  updateDeal: async (id, dealData) => {
+    return apiRequest(`/deals/${id}`, {
+      method: 'PUT',
+      body: dealData,
+    });
+  },
+
+  deleteDeal: async (id) => {
+    return apiRequest(`/deals/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
+  toggleDealStatus: async (id) => {
+    return apiRequest(`/deals/${id}/toggle-status`, {
+      method: 'PUT',
+    });
+  },
+};
+
+// Goals API functions
+export const goalsAPI = {
+  getAllGoals: async (isActive) => {
+    const queryParams = new URLSearchParams();
+    if (isActive !== undefined) queryParams.append('is_active', isActive);
+    const queryString = queryParams.toString();
+    const url = `/goals${queryString ? `?${queryString}` : ''}`;
+    return apiRequest(url, { method: 'GET' });
+  },
+
+  getGoalById: async (id) => {
+    return apiRequest(`/goals/${id}`, { method: 'GET' });
+  },
+
+  createGoal: async (goalData) => {
+    return apiRequest('/goals', {
+      method: 'POST',
+      body: goalData,
+    });
+  },
+
+  updateGoal: async (id, goalData) => {
+    return apiRequest(`/goals/${id}`, {
+      method: 'PUT',
+      body: goalData,
+    });
+  },
+
+  deleteGoal: async (id) => {
+    return apiRequest(`/goals/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
+  toggleGoalStatus: async (id) => {
+    return apiRequest(`/goals/${id}/toggle-status`, {
+      method: 'PUT',
+    });
+  },
+};

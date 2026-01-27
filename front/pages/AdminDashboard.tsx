@@ -2,11 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { dashboardAPI } from '../utils/api';
-import { Users, ShoppingBag, Package, FolderTree, Settings, LogOut, TrendingUp, Clock, ArrowRight, Eye } from 'lucide-react';
+import { Users, ShoppingBag, Package, FolderTree, Settings, LogOut, TrendingUp, Clock, ArrowRight, Eye, Building2, BarChart3, Tag, Target } from 'lucide-react';
 import AdminUsers from './AdminUsers';
 import AdminCategories from './AdminCategories';
 import AdminProducts from './AdminProducts';
 import AdminOrders from './AdminOrders';
+import AdminBrands from './AdminBrands';
+import AdminStats from './AdminStats';
+import AdminDeals from './AdminDeals';
+import AdminGoals from './AdminGoals';
 
 interface AdminDashboardProps {
   onNavigate: (page: string, params?: any) => void;
@@ -262,6 +266,50 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, initialTab 
                       {t('orderManagement')}
                     </button>
                   )}
+                  {user.role === 'admin' && (
+                    <>
+                      <button
+                        onClick={() => setActiveTab('brands')}
+                        className={`px-6 py-3 rounded-2xl font-bold transition-all ${
+                          activeTab === 'brands'
+                            ? 'bg-primary text-white'
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        }`}
+                      >
+                        {language === 'ar' ? 'البراندات' : 'Brands'}
+                      </button>
+                      <button
+                        onClick={() => setActiveTab('stats')}
+                        className={`px-6 py-3 rounded-2xl font-bold transition-all ${
+                          activeTab === 'stats'
+                            ? 'bg-primary text-white'
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        }`}
+                      >
+                        {language === 'ar' ? 'الإحصائيات' : 'Statistics'}
+                      </button>
+                      <button
+                        onClick={() => setActiveTab('deals')}
+                        className={`px-6 py-3 rounded-2xl font-bold transition-all ${
+                          activeTab === 'deals'
+                            ? 'bg-primary text-white'
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        }`}
+                      >
+                        {language === 'ar' ? 'صفقات اليوم' : 'Deals of Day'}
+                      </button>
+                      <button
+                        onClick={() => setActiveTab('goals')}
+                        className={`px-6 py-3 rounded-2xl font-bold transition-all ${
+                          activeTab === 'goals'
+                            ? 'bg-primary text-white'
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        }`}
+                      >
+                        {language === 'ar' ? 'الأهداف' : 'Goals'}
+                      </button>
+                    </>
+                  )}
                 </>
               );
             })()}
@@ -475,6 +523,26 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, initialTab 
             {activeTab === 'orders' && (
               <div className="-m-6">
                 <AdminOrders onNavigate={onNavigate} />
+              </div>
+            )}
+            {activeTab === 'brands' && user.role === 'admin' && (
+              <div className="-m-6">
+                <AdminBrands onNavigate={onNavigate} />
+              </div>
+            )}
+            {activeTab === 'stats' && user.role === 'admin' && (
+              <div className="-m-6">
+                <AdminStats onNavigate={onNavigate} />
+              </div>
+            )}
+            {activeTab === 'deals' && user.role === 'admin' && (
+              <div className="-m-6">
+                <AdminDeals onNavigate={onNavigate} />
+              </div>
+            )}
+            {activeTab === 'goals' && user.role === 'admin' && (
+              <div className="-m-6">
+                <AdminGoals onNavigate={onNavigate} />
               </div>
             )}
           </div>

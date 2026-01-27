@@ -4,6 +4,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { products, categories } from '../data/mockData';
 import ProductCard from '../components/ProductCard';
 import { useCart } from '../context/CartContext';
+import { brandsAPI, dealsAPI, goalsAPI } from '../utils/api';
 import { 
   ArrowLeft, 
   ArrowRight, 
@@ -29,44 +30,172 @@ interface HomeProps {
 const Home: React.FC<HomeProps> = ({ onNavigate }) => {
   const { t, language } = useLanguage();
   const { addToCart } = useCart();
-  const [countdown, setCountdown] = useState({ hours: 12, mins: 45, secs: 30 });
+  const [countdown, setCountdown] = useState({ hours: 0, mins: 0, secs: 0 });
+  const [brands, setBrands] = useState<any[]>([]);
+  const [loadingBrands, setLoadingBrands] = useState(true);
+  const [activeDeal, setActiveDeal] = useState<any>(null);
+  const [goals, setGoals] = useState<any[]>([]);
 
-  // Mock Countdown Timer for Deal of the Day
+  // Fetch brands from database
   useEffect(() => {
-    const timer = setInterval(() => {
-      setCountdown(prev => {
-        if (prev.secs > 0) return { ...prev, secs: prev.secs - 1 };
-        if (prev.mins > 0) return { ...prev, mins: prev.mins - 1, secs: 59 };
-        if (prev.hours > 0) return { ...prev, hours: prev.hours - 1, mins: 59, secs: 59 };
-        return prev;
-      });
-    }, 1000);
-    return () => clearInterval(timer);
+    const fetchBrands = async () => {
+      try {
+        setLoadingBrands(true);
+        const response = await brandsAPI.getAllBrands(true); // Get only active brands
+        if (response.success && response.data?.brands) {
+          // Format logo URLs to full URLs if needed
+          const formattedBrands = response.data.brands.map((brand: any) => {
+            let logoUrl = brand.logo_url || null;
+            if (logoUrl && !logoUrl.startsWith('http') && logoUrl.startsWith('/')) {
+              logoUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${logoUrl}`;
+            }
+            return {
+              ...brand,
+              logo_url: logoUrl
+            };
+          });
+          setBrands(formattedBrands);
+        }
+      } catch (err) {
+        console.error('Failed to fetch brands:', err);
+        // Fallback to empty array if API fails
+        setBrands([]);
+      } finally {
+        setLoadingBrands(false);
+      }
+    };
+
+    fetchBrands();
   }, []);
+
+  // Fetch active deal from database
+  useEffect(() => {
+    const fetchActiveDeal = async () => {
+      try {
+        const response = await dealsAPI.getActiveDeal();
+        if (response.success && response.data?.deal) {
+          const deal = response.data.deal;
+          // Format image URL if needed
+          let imageUrl = deal.image_url || null;
+          if (imageUrl && !imageUrl.startsWith('http') && imageUrl.startsWith('/')) {
+            imageUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${imageUrl}`;
+          }
+          setActiveDeal({ ...deal, image_url: imageUrl });
+          
+          // Calculate countdown from end_date
+          const endDate = new Date(deal.end_date);
+          updateCountdown(endDate);
+        } else {
+          setActiveDeal(null);
+        }
+      } catch (err) {
+        console.error('Failed to fetch active deal:', err);
+        setActiveDeal(null);
+      }
+    };
+
+    fetchActiveDeal();
+  }, []);
+
+  // Update countdown timer based on deal end_date
+  const updateCountdown = (endDate: Date) => {
+    const update = () => {
+      const now = new Date();
+      const diff = endDate.getTime() - now.getTime();
+      
+      if (diff > 0) {
+        const hours = Math.floor(diff / (1000 * 60 * 60));
+        const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        const secs = Math.floor((diff % (1000 * 60)) / 1000);
+        setCountdown({ hours, mins, secs });
+      } else {
+        setCountdown({ hours: 0, mins: 0, secs: 0 });
+      }
+    };
+
+    update(); // Initial update
+    const timer = setInterval(update, 1000);
+    return () => clearInterval(timer);
+  };
+
+  // Countdown Timer for Deal of the Day
+  useEffect(() => {
+    if (!activeDeal) return;
+    
+    const endDate = new Date(activeDeal.end_date);
+    const timer = setInterval(() => {
+      const now = new Date();
+      const diff = endDate.getTime() - now.getTime();
+      
+      if (diff > 0) {
+        const hours = Math.floor(diff / (1000 * 60 * 60));
+        const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        const secs = Math.floor((diff % (1000 * 60)) / 1000);
+        setCountdown({ hours, mins, secs });
+      } else {
+        setCountdown({ hours: 0, mins: 0, secs: 0 });
+        // Optionally refresh deal when expired
+        setActiveDeal(null);
+      }
+    }, 1000);
+    
+    return () => clearInterval(timer);
+  }, [activeDeal]);
 
   const handleAddToCart = (e: React.MouseEvent, product: any) => {
     e.stopPropagation();
     addToCart(product, 1, '');
   };
 
-  // Updated Brand Logos with high-stability Clearbit and Google Favicon fallbacks
-  const brands = [
-    { name: 'Optimum Nutrition', domain: 'optimumnutrition.com' },
-    { name: 'MuscleTech', domain: 'muscletech.com' },
-    { name: 'Dymatize', domain: 'dymatize.com' },
-    { name: 'MyProtein', domain: 'myprotein.com' },
-    { name: 'Cellucor', domain: 'cellucor.com' }
-  ];
+  // Fetch goals from database
+  useEffect(() => {
+    const fetchGoals = async () => {
+      try {
+        const response = await goalsAPI.getAllGoals(true); // Get only active goals
+        console.log('Goals API Response:', response);
+        if (response.success && response.data?.goals) {
+          console.log('Goals fetched:', response.data.goals);
+          setGoals(response.data.goals);
+        } else {
+          console.log('No goals found in response');
+          setGoals([]);
+        }
+      } catch (err) {
+        console.error('Failed to fetch goals:', err);
+        setGoals([]);
+      }
+    };
 
-  const getLogoUrl = (domain: string) => `https://logo.clearbit.com/${domain}`;
-  const getFallbackLogoUrl = (domain: string) => `https://www.google.com/s2/favicons?sz=128&domain=${domain}`;
+    fetchGoals();
+  }, []);
 
-  const goals = [
-    { id: '1', title: t('goalMuscle'), icon: <Flame size={40} />, color: 'bg-red-600' },
-    { id: '2', title: t('goalWeight'), icon: <Target size={40} />, color: 'bg-blue-600' },
-    { id: '3', title: t('goalEnergy'), icon: <Zap size={40} />, color: 'bg-yellow-600' },
-    { id: '4', title: t('goalHealth'), icon: <Trophy size={40} />, color: 'bg-emerald-600' }
-  ];
+  const getLogoUrl = (brand: any) => {
+    if (brand.logo_url) {
+      return brand.logo_url;
+    }
+    // Fallback to domain-based logo if no logo_url
+    if (brand.website_url) {
+      try {
+        const domain = new URL(brand.website_url).hostname.replace('www.', '');
+        return `https://logo.clearbit.com/${domain}`;
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  };
+
+  const getFallbackLogoUrl = (brand: any) => {
+    if (brand.website_url) {
+      try {
+        const domain = new URL(brand.website_url).hostname;
+        return `https://www.google.com/s2/favicons?sz=128&domain=${domain}`;
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  };
 
   return (
     <div className="space-y-24 pb-24">
@@ -154,67 +283,93 @@ const Home: React.FC<HomeProps> = ({ onNavigate }) => {
       </section>
 
       {/* Brands Slider - Animated Premium Slider */}
-      <section className="container mx-auto px-4 overflow-hidden border-b border-gray-100 pb-20">
-        <div className="text-center mb-16">
-          <p className="text-primary font-black text-xs uppercase tracking-[0.5em] mb-4">{t('ourBrands')}</p>
-          <h2 className="text-4xl font-black italic uppercase tracking-tighter">{t('trustedBrands')}</h2>
-        </div>
-        
-        {/* Slider Container */}
-        <div className="relative">
-          {/* Gradient Overlays for Smooth Edges */}
-          <div className="absolute left-0 top-0 bottom-0 w-32 bg-gradient-to-r from-white to-transparent z-10 pointer-events-none"></div>
-          <div className="absolute right-0 top-0 bottom-0 w-32 bg-gradient-to-l from-white to-transparent z-10 pointer-events-none"></div>
+      {brands.length > 0 && (
+        <section className="container mx-auto px-4 overflow-hidden border-b border-gray-100 pb-20">
+          <div className="text-center mb-16">
+            <p className="text-primary font-black text-xs uppercase tracking-[0.5em] mb-4">{t('ourBrands')}</p>
+            <h2 className="text-4xl font-black italic uppercase tracking-tighter">{t('trustedBrands')}</h2>
+          </div>
           
-          {/* Infinite Scrolling Slider */}
-          <div className="overflow-hidden">
-            <div className={`flex gap-8 lg:gap-16 ${language === 'ar' ? 'animate-scroll-rtl' : 'animate-scroll-ltr'}`}>
-              {/* First Set */}
-              {brands.map((brand, i) => (
-                <div key={`first-${i}`} className="group flex flex-col items-center gap-4 shrink-0 transition-all duration-500">
-                  <div className="bg-white p-6 rounded-[2.5rem] shadow-xl border border-gray-100 group-hover:shadow-primary/20 group-hover:border-primary/50 group-hover:-translate-y-3 transition-all flex items-center justify-center w-36 h-28 lg:w-48 lg:h-36 relative overflow-hidden">
-                    <img 
-                      src={getLogoUrl(brand.domain)} 
-                      alt={brand.name} 
-                      className="max-h-[85%] max-w-[85%] object-contain transition-all duration-500 group-hover:scale-110"
-                      onError={(e) => {
-                        const target = e.currentTarget;
-                        if (target.src !== getFallbackLogoUrl(brand.domain)) {
-                          target.src = getFallbackLogoUrl(brand.domain);
-                        } else {
-                          target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(brand.name)}&background=D31010&color=fff&size=200&bold=true`;
-                        }
-                      }}
-                    />
-                  </div>
-                  <span className="text-xs font-black uppercase text-gray-500 group-hover:text-primary tracking-widest opacity-60 group-hover:opacity-100 transition-all whitespace-nowrap">{brand.name}</span>
-                </div>
-              ))}
-              {/* Duplicate Set for Infinite Loop */}
-              {brands.map((brand, i) => (
-                <div key={`second-${i}`} className="group flex flex-col items-center gap-4 shrink-0 transition-all duration-500">
-                  <div className="bg-white p-6 rounded-[2.5rem] shadow-xl border border-gray-100 group-hover:shadow-primary/20 group-hover:border-primary/50 group-hover:-translate-y-3 transition-all flex items-center justify-center w-36 h-28 lg:w-48 lg:h-36 relative overflow-hidden">
-                    <img 
-                      src={getLogoUrl(brand.domain)} 
-                      alt={brand.name} 
-                      className="max-h-[85%] max-w-[85%] object-contain transition-all duration-500 group-hover:scale-110"
-                      onError={(e) => {
-                        const target = e.currentTarget;
-                        if (target.src !== getFallbackLogoUrl(brand.domain)) {
-                          target.src = getFallbackLogoUrl(brand.domain);
-                        } else {
-                          target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(brand.name)}&background=D31010&color=fff&size=200&bold=true`;
-                        }
-                      }}
-                    />
-                  </div>
-                  <span className="text-xs font-black uppercase text-gray-500 group-hover:text-primary tracking-widest opacity-60 group-hover:opacity-100 transition-all whitespace-nowrap">{brand.name}</span>
-                </div>
-              ))}
+          {/* Slider Container */}
+          <div className="relative">
+            {/* Gradient Overlays for Smooth Edges */}
+            <div className="absolute left-0 top-0 bottom-0 w-32 bg-gradient-to-r from-white to-transparent z-10 pointer-events-none"></div>
+            <div className="absolute right-0 top-0 bottom-0 w-32 bg-gradient-to-l from-white to-transparent z-10 pointer-events-none"></div>
+            
+            {/* Infinite Scrolling Slider */}
+            <div className="overflow-hidden">
+              <div className={`flex gap-8 lg:gap-16 ${language === 'ar' ? 'animate-scroll-rtl' : 'animate-scroll-ltr'}`}>
+                {/* First Set */}
+                {brands.map((brand, i) => {
+                  const logoUrl = getLogoUrl(brand);
+                  const fallbackUrl = getFallbackLogoUrl(brand);
+                  const brandName = language === 'ar' ? brand.name : (brand.name_en || brand.name);
+                  
+                  return (
+                    <div key={`first-${brand.id}-${i}`} className="group flex flex-col items-center gap-4 shrink-0 transition-all duration-500">
+                      <div className="bg-white p-6 rounded-[2.5rem] shadow-xl border border-gray-100 group-hover:shadow-primary/20 group-hover:border-primary/50 group-hover:-translate-y-3 transition-all flex items-center justify-center w-36 h-28 lg:w-48 lg:h-36 relative overflow-hidden">
+                        {logoUrl ? (
+                          <img 
+                            src={logoUrl} 
+                            alt={brandName} 
+                            className="max-h-[85%] max-w-[85%] object-contain transition-all duration-500 group-hover:scale-110"
+                            onError={(e) => {
+                              const target = e.currentTarget;
+                              if (fallbackUrl && target.src !== fallbackUrl) {
+                                target.src = fallbackUrl;
+                              } else {
+                                target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(brandName)}&background=D31010&color=fff&size=200&bold=true`;
+                              }
+                            }}
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center bg-gray-100 rounded-xl">
+                            <span className="text-gray-400 text-xs font-bold">{brandName}</span>
+                          </div>
+                        )}
+                      </div>
+                      <span className="text-xs font-black uppercase text-gray-500 group-hover:text-primary tracking-widest opacity-60 group-hover:opacity-100 transition-all whitespace-nowrap">{brandName}</span>
+                    </div>
+                  );
+                })}
+                {/* Duplicate Set for Infinite Loop */}
+                {brands.map((brand, i) => {
+                  const logoUrl = getLogoUrl(brand);
+                  const fallbackUrl = getFallbackLogoUrl(brand);
+                  const brandName = language === 'ar' ? brand.name : (brand.name_en || brand.name);
+                  
+                  return (
+                    <div key={`second-${brand.id}-${i}`} className="group flex flex-col items-center gap-4 shrink-0 transition-all duration-500">
+                      <div className="bg-white p-6 rounded-[2.5rem] shadow-xl border border-gray-100 group-hover:shadow-primary/20 group-hover:border-primary/50 group-hover:-translate-y-3 transition-all flex items-center justify-center w-36 h-28 lg:w-48 lg:h-36 relative overflow-hidden">
+                        {logoUrl ? (
+                          <img 
+                            src={logoUrl} 
+                            alt={brandName} 
+                            className="max-h-[85%] max-w-[85%] object-contain transition-all duration-500 group-hover:scale-110"
+                            onError={(e) => {
+                              const target = e.currentTarget;
+                              if (fallbackUrl && target.src !== fallbackUrl) {
+                                target.src = fallbackUrl;
+                              } else {
+                                target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(brandName)}&background=D31010&color=fff&size=200&bold=true`;
+                              }
+                            }}
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center bg-gray-100 rounded-xl">
+                            <span className="text-gray-400 text-xs font-bold">{brandName}</span>
+                          </div>
+                        )}
+                      </div>
+                      <span className="text-xs font-black uppercase text-gray-500 group-hover:text-primary tracking-widest opacity-60 group-hover:opacity-100 transition-all whitespace-nowrap">{brandName}</span>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* Categories Sections */}
       {categories.slice(0, 4).map((category) => {
@@ -271,81 +426,138 @@ const Home: React.FC<HomeProps> = ({ onNavigate }) => {
       </section>
 
       {/* Shop By Goal */}
-      <section className="container mx-auto px-4">
-        <div className="text-center mb-16">
-          <h2 className="text-5xl font-black italic uppercase mb-4 tracking-tighter">{t('shopByGoal')}</h2>
-          <div className="w-24 h-2 bg-primary mx-auto rounded-full"></div>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-          {goals.map((goal) => (
-            <div 
-              key={goal.id}
-              onClick={() => onNavigate('shop')}
-              className="group relative h-96 rounded-[3.5rem] overflow-hidden cursor-pointer shadow-xl hover:-translate-y-4 transition-all duration-500"
-            >
-              <div className={`absolute inset-0 ${goal.color} opacity-90 group-hover:opacity-100 transition-opacity`}></div>
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
-              <div className="absolute inset-0 p-12 flex flex-col justify-between text-white">
-                <div className="bg-white/20 w-24 h-24 rounded-[2rem] flex items-center justify-center backdrop-blur-md border border-white/30 group-hover:rotate-12 transition-transform shadow-xl">
-                  {goal.icon}
-                </div>
-                <div>
-                  <h3 className="text-4xl font-black italic uppercase leading-none mb-3">{goal.title}</h3>
-                  <div className="flex items-center gap-2 overflow-hidden w-0 group-hover:w-full transition-all duration-500">
-                    <span className="text-[10px] font-black opacity-70 uppercase tracking-[0.2em] whitespace-nowrap">Explore Products</span>
-                    <ArrowRight size={14} className="text-white" />
+      {goals.length > 0 && (
+        <section className="container mx-auto px-4">
+          <div className="text-center mb-16">
+            <h2 className="text-5xl font-black italic uppercase mb-4 tracking-tighter">{t('shopByGoal')}</h2>
+            <div className="w-24 h-2 bg-primary mx-auto rounded-full"></div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {goals.map((goal: any) => {
+              const IconComponent = goal.icon_name === 'flame' ? Flame :
+                                   goal.icon_name === 'target' ? Target :
+                                   goal.icon_name === 'zap' ? Zap :
+                                   goal.icon_name === 'trophy' ? Trophy : Target;
+              const goalTitle = language === 'ar' ? goal.title_ar : goal.title_en;
+              
+              return (
+                <div 
+                  key={goal.id}
+                  onClick={() => onNavigate('shop')}
+                  className="group relative h-96 rounded-[3.5rem] overflow-hidden cursor-pointer shadow-xl hover:-translate-y-4 transition-all duration-500"
+                >
+                  <div className={`absolute inset-0 ${goal.color_gradient} opacity-90 group-hover:opacity-100 transition-opacity`}></div>
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
+                  <div className="absolute inset-0 p-12 flex flex-col justify-between text-white">
+                    <div className="bg-white/20 w-24 h-24 rounded-[2rem] flex items-center justify-center backdrop-blur-md border border-white/30 group-hover:rotate-12 transition-transform shadow-xl">
+                      <IconComponent size={40} />
+                    </div>
+                    <div>
+                      <h3 className="text-4xl font-black italic uppercase leading-none mb-3">{goalTitle}</h3>
+                      <div className="flex items-center gap-2 overflow-hidden w-0 group-hover:w-full transition-all duration-500">
+                        <span className="text-[10px] font-black opacity-70 uppercase tracking-[0.2em] whitespace-nowrap">
+                          {language === 'ar' ? 'استكشف المنتجات' : 'Explore Products'}
+                        </span>
+                        {language === 'ar' ? <ArrowLeft size={14} className="text-white" /> : <ArrowRight size={14} className="text-white" />}
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
-      {/* Deal of the Day - Fixed Image and Styles */}
-      <section className="container mx-auto px-4">
-        <div className="bg-secondary text-white rounded-[5rem] p-10 lg:p-24 relative overflow-hidden flex flex-col lg:flex-row items-center gap-16 shadow-2xl">
-          <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-primary/10 rounded-full blur-[120px] -mr-40 -mt-40"></div>
-          
-          <div className="flex-grow space-y-10 relative z-10 text-center lg:text-right">
-            <div className="inline-flex items-center gap-3 bg-primary px-6 py-2.5 rounded-[1.5rem] text-xs font-black uppercase italic">
-              <Flame size={18} fill="white" /> {t('dealOfTheDay')}
-            </div>
-            <h2 className="text-5xl lg:text-8xl font-black italic uppercase leading-[0.85] tracking-tight">
-              {language === 'ar' ? (
-                <>صفقة <span className="text-primary">ضخمة</span> على البروتين</>
-              ) : (
-                <>MASSIVE <span className="text-primary">DEAL</span> ON WHEY</>
+      {/* Deal of the Day - From Database */}
+      {activeDeal && (
+        <section className="container mx-auto px-4">
+          <div className="bg-secondary text-white rounded-[5rem] p-10 lg:p-24 relative overflow-hidden flex flex-col lg:flex-row items-center gap-16 shadow-2xl">
+            <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-primary/10 rounded-full blur-[120px] -mr-40 -mt-40"></div>
+            
+            <div className="flex-grow space-y-10 relative z-10 text-center lg:text-right">
+              <div className="inline-flex items-center gap-3 bg-primary px-6 py-2.5 rounded-[1.5rem] text-xs font-black uppercase italic">
+                <Flame size={18} fill="white" /> {t('dealOfTheDay')}
+              </div>
+              <h2 className="text-5xl lg:text-8xl font-black italic uppercase leading-[0.85] tracking-tight">
+                {language === 'ar' ? (
+                  <>
+                    {activeDeal.title_ar?.split(' ').map((word: string, i: number) => (
+                      <span key={i} className={i === 0 ? 'text-primary' : ''}>{word} </span>
+                    ))}
+                  </>
+                ) : (
+                  <>
+                    {activeDeal.title_en?.split(' ').map((word: string, i: number) => (
+                      <span key={i} className={i === 0 ? 'text-primary' : ''}>{word} </span>
+                    ))}
+                  </>
+                )}
+              </h2>
+              {activeDeal.description_ar && (
+                <p className="text-lg lg:text-xl text-gray-300 font-bold">
+                  {language === 'ar' ? activeDeal.description_ar : activeDeal.description_en}
+                </p>
               )}
-            </h2>
-            <div className="flex justify-center lg:justify-start gap-5 text-center">
-              {[
-                { val: countdown.hours, label: t('hours') },
-                { val: countdown.mins, label: t('minutes') },
-                { val: countdown.secs, label: t('seconds') }
-              ].map((c, i) => (
-                <div key={i} className="bg-white/5 border border-white/10 rounded-[2rem] p-5 w-28 backdrop-blur-md">
-                  <p className="text-4xl font-black italic text-primary">{c.val}</p>
-                  <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">{c.label}</p>
+              {activeDeal.discount_percentage && (
+                <div className="inline-block bg-primary/20 px-6 py-3 rounded-2xl border border-primary/30">
+                  <p className="text-3xl font-black">
+                    {language === 'ar' ? 'خصم' : 'Discount'} {activeDeal.discount_percentage}%
+                  </p>
                 </div>
-              ))}
+              )}
+              <div className="flex justify-center lg:justify-start gap-5 text-center">
+                {[
+                  { val: countdown.hours, label: t('hours') },
+                  { val: countdown.mins, label: t('minutes') },
+                  { val: countdown.secs, label: t('seconds') }
+                ].map((c, i) => (
+                  <div key={i} className="bg-white/5 border border-white/10 rounded-[2rem] p-5 w-28 backdrop-blur-md">
+                    <p className="text-4xl font-black italic text-primary">{c.val}</p>
+                    <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">{c.label}</p>
+                  </div>
+                ))}
+              </div>
+              <button 
+                onClick={() => activeDeal.product_id ? onNavigate('product', { id: activeDeal.product_id }) : onNavigate('shop')}
+                className="bg-white text-secondary font-black px-14 py-6 rounded-[2rem] hover:bg-primary hover:text-white transition-all uppercase italic text-xl shadow-2xl transform active:scale-95"
+              >
+                {t('claimOffer')}
+              </button>
             </div>
-            <button className="bg-white text-secondary font-black px-14 py-6 rounded-[2rem] hover:bg-primary hover:text-white transition-all uppercase italic text-xl shadow-2xl transform active:scale-95">
-              {t('claimOffer')}
-            </button>
+            
+            <div className="w-full lg:w-1/2 relative group">
+              <div className="absolute inset-0 bg-primary/20 blur-[100px] group-hover:bg-primary/40 transition-all duration-700"></div>
+              {activeDeal.image_url ? (
+                <img 
+                  src={activeDeal.image_url} 
+                  className="w-full h-auto object-contain relative z-10 animate-float" 
+                  alt={language === 'ar' ? activeDeal.title_ar : activeDeal.title_en}
+                  onError={(e) => {
+                    e.currentTarget.src = "https://images.unsplash.com/photo-1546483875-ad9014c88eba?q=80&w=1000&auto=format&fit=crop";
+                  }}
+                />
+              ) : activeDeal.product_image ? (
+                <img 
+                  src={activeDeal.product_image} 
+                  className="w-full h-auto object-contain relative z-10 animate-float" 
+                  alt={language === 'ar' ? activeDeal.title_ar : activeDeal.title_en}
+                  onError={(e) => {
+                    e.currentTarget.src = "https://images.unsplash.com/photo-1546483875-ad9014c88eba?q=80&w=1000&auto=format&fit=crop";
+                  }}
+                />
+              ) : (
+                <img 
+                  src="https://images.unsplash.com/photo-1546483875-ad9014c88eba?q=80&w=1000&auto=format&fit=crop" 
+                  className="w-full h-auto object-contain relative z-10 animate-float" 
+                  alt="Flash sale product" 
+                  onError={(e) => (e.currentTarget.src = "https://images.unsplash.com/photo-1593095191850-2a7330053bb4?q=80&w=1000&auto=format&fit=crop")}
+                />
+              )}
+            </div>
           </div>
-          
-          <div className="w-full lg:w-1/2 relative group">
-            <div className="absolute inset-0 bg-primary/20 blur-[100px] group-hover:bg-primary/40 transition-all duration-700"></div>
-            <img 
-              src="https://images.unsplash.com/photo-1546483875-ad9014c88eba?q=80&w=1000&auto=format&fit=crop" 
-              className="w-full h-auto object-contain relative z-10 animate-float" 
-              alt="Flash sale product" 
-              onError={(e) => (e.currentTarget.src = "https://images.unsplash.com/photo-1593095191850-2a7330053bb4?q=80&w=1000&auto=format&fit=crop")}
-            />
-          </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       <style>{`
         @keyframes float {

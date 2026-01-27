@@ -82,3 +82,57 @@ export const uploadProductImages = multer({
   },
   fileFilter: fileFilter
 }).array('images', 10); // Accept up to 10 images
+
+// Create brands upload directory if it doesn't exist
+const brandsUploadsDir = path.join(__dirname, '../uploads/brands');
+if (!fs.existsSync(brandsUploadsDir)) {
+  fs.mkdirSync(brandsUploadsDir, { recursive: true });
+}
+
+// Configure storage for brands
+const brandStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, brandsUploadsDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const ext = path.extname(file.originalname);
+    cb(null, `brand-${uniqueSuffix}${ext}`);
+  }
+});
+
+// Configure multer for brands
+export const uploadBrandImage = multer({
+  storage: brandStorage,
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 5MB
+  },
+  fileFilter: fileFilter
+}).single('image');
+
+// Create deals upload directory if it doesn't exist
+const dealsUploadsDir = path.join(__dirname, '../uploads/deals');
+if (!fs.existsSync(dealsUploadsDir)) {
+  fs.mkdirSync(dealsUploadsDir, { recursive: true });
+}
+
+// Configure storage for deals
+const dealStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, dealsUploadsDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const ext = path.extname(file.originalname);
+    cb(null, `deal-${uniqueSuffix}${ext}`);
+  }
+});
+
+// Configure multer for deals
+export const uploadDealImage = multer({
+  storage: dealStorage,
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 5MB
+  },
+  fileFilter: fileFilter
+}).single('image');
