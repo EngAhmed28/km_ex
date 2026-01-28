@@ -69,7 +69,7 @@ const AdminSiteSettings: React.FC<AdminSiteSettingsProps> = ({ onNavigate }) => 
           // Format logo URL to full URL if needed
           let logoUrl = response.data.settings.logo_url;
           if (logoUrl && !logoUrl.startsWith('http') && logoUrl.startsWith('/')) {
-            logoUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${logoUrl}`;
+            logoUrl = `${import.meta.env.VITE_API_URL || 'https://kingofmuscles.metacodecx.com'}${logoUrl}`;
           }
           setLogoPreview(logoUrl);
         }
@@ -131,7 +131,7 @@ const AdminSiteSettings: React.FC<AdminSiteSettingsProps> = ({ onNavigate }) => 
         const formData = new FormData();
         formData.append('image', logoFile);
 
-        const uploadResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/upload/logo`, {
+        const uploadResponse = await fetch(`${import.meta.env.VITE_API_URL || 'https://kingofmuscles.metacodecx.com/api'}/upload/logo`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -163,7 +163,7 @@ const AdminSiteSettings: React.FC<AdminSiteSettingsProps> = ({ onNavigate }) => 
         if (logoUrl) {
           let previewUrl = logoUrl;
           if (previewUrl && !previewUrl.startsWith('http') && previewUrl.startsWith('/')) {
-            previewUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${previewUrl}`;
+            previewUrl = `${import.meta.env.VITE_API_URL || 'https://kingofmuscles.metacodecx.com'}${previewUrl}`;
           }
           setLogoPreview(previewUrl);
         }
@@ -311,7 +311,7 @@ const AdminSiteSettings: React.FC<AdminSiteSettingsProps> = ({ onNavigate }) => 
                           if (settings.logo_url) {
                             let logoUrl = settings.logo_url;
                             if (logoUrl && !logoUrl.startsWith('http') && logoUrl.startsWith('/')) {
-                              logoUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${logoUrl}`;
+                              logoUrl = `${import.meta.env.VITE_API_URL || 'https://kingofmuscles.metacodecx.com'}${logoUrl}`;
                             }
                             setLogoPreview(logoUrl);
                           } else {

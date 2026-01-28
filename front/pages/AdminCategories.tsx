@@ -127,7 +127,7 @@ const AdminCategories: React.FC<AdminCategoriesProps> = ({ onNavigate }) => {
           let imageUrl = cat.image_url || cat.image || null;
           // Convert relative path to full URL if needed
           if (imageUrl && !imageUrl.startsWith('http') && imageUrl.startsWith('/')) {
-            imageUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${imageUrl}`;
+            imageUrl = `${import.meta.env.VITE_API_URL || 'https://kingofmuscles.metacodecx.com'}${imageUrl}`;
           }
           return {
             id: cat.id,
@@ -222,7 +222,7 @@ const AdminCategories: React.FC<AdminCategoriesProps> = ({ onNavigate }) => {
         const formData = new FormData();
         formData.append('image', addImageFile);
 
-        const uploadResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/upload/category`, {
+        const uploadResponse = await fetch(`${import.meta.env.VITE_API_URL || 'https://kingofmuscles.metacodecx.com/api'}/upload/category`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -276,7 +276,7 @@ const AdminCategories: React.FC<AdminCategoriesProps> = ({ onNavigate }) => {
     // Ensure image_url has full URL if it's a relative path
     let imageUrl = category.image_url || '';
     if (imageUrl && !imageUrl.startsWith('http') && imageUrl.startsWith('/')) {
-      imageUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${imageUrl}`;
+      imageUrl = `${import.meta.env.VITE_API_URL || 'https://kingofmuscles.metacodecx.com'}${imageUrl}`;
     }
     setEditForm({
       name: category.name,
@@ -308,7 +308,7 @@ const AdminCategories: React.FC<AdminCategoriesProps> = ({ onNavigate }) => {
         const formData = new FormData();
         formData.append('image', editImageFile);
 
-        const uploadResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/upload/category`, {
+        const uploadResponse = await fetch(`${import.meta.env.VITE_API_URL || 'https://kingofmuscles.metacodecx.com/api'}/upload/category`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -493,7 +493,7 @@ const AdminCategories: React.FC<AdminCategoriesProps> = ({ onNavigate }) => {
                           <img 
                             src={category.image_url.startsWith('http') 
                               ? category.image_url 
-                              : `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${category.image_url}`} 
+                              : `${import.meta.env.VITE_API_URL || 'https://kingofmuscles.metacodecx.com'}${category.image_url}`} 
                             alt={category.name} 
                             className="w-16 h-16 object-cover rounded-xl"
                             onError={(e) => {
@@ -731,7 +731,7 @@ const AdminCategories: React.FC<AdminCategoriesProps> = ({ onNavigate }) => {
                     <img 
                       src={editForm.image_url.startsWith('http') 
                         ? editForm.image_url 
-                        : `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${editForm.image_url}`} 
+                        : `${import.meta.env.VITE_API_URL || 'https://kingofmuscles.metacodecx.com'}${editForm.image_url}`} 
                       alt="Current" 
                       className="w-32 h-32 object-cover rounded-xl border-2 border-gray-200"
                       onError={(e) => {

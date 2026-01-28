@@ -97,7 +97,7 @@ const AdminBrands: React.FC<AdminBrandsProps> = ({ onNavigate }) => {
         const formattedBrands = response.data.brands.map((brand: any) => {
           let logoUrl = brand.logo_url || null;
           if (logoUrl && !logoUrl.startsWith('http') && logoUrl.startsWith('/')) {
-            logoUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${logoUrl}`;
+            logoUrl = `${import.meta.env.VITE_API_URL || 'https://kingofmuscles.metacodecx.com'}${logoUrl}`;
           }
           return { ...brand, logo_url: logoUrl };
         });
@@ -183,7 +183,7 @@ const AdminBrands: React.FC<AdminBrandsProps> = ({ onNavigate }) => {
         const formData = new FormData();
         formData.append('image', addLogoFile);
 
-        const uploadResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/upload/brand`, {
+        const uploadResponse = await fetch(`${import.meta.env.VITE_API_URL || 'https://kingofmuscles.metacodecx.com/api'}/upload/brand`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -235,7 +235,7 @@ const AdminBrands: React.FC<AdminBrandsProps> = ({ onNavigate }) => {
     // Ensure logo_url has full URL if it's a relative path
     let logoUrl = brand.logo_url || '';
     if (logoUrl && !logoUrl.startsWith('http') && logoUrl.startsWith('/')) {
-      logoUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${logoUrl}`;
+      logoUrl = `${import.meta.env.VITE_API_URL || 'https://kingofmuscles.metacodecx.com'}${logoUrl}`;
     }
     setEditForm({
       name: brand.name,
@@ -268,7 +268,7 @@ const AdminBrands: React.FC<AdminBrandsProps> = ({ onNavigate }) => {
         const formData = new FormData();
         formData.append('image', editLogoFile);
 
-        const uploadResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/upload/brand`, {
+        const uploadResponse = await fetch(`${import.meta.env.VITE_API_URL || 'https://kingofmuscles.metacodecx.com/api'}/upload/brand`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`

@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import ProductCard from '../components/ProductCard';
 import { useCart } from '../context/CartContext';
-import { brandsAPI, dealsAPI, goalsAPI, categoriesAPI, productsAPI, statsAPI } from '../utils/api';
+import { brandsAPI, dealsAPI, goalsAPI, categoriesAPI, productsAPI, statsAPI, getFullUrl } from '../utils/api';
 import { 
   ArrowLeft, 
   ArrowRight, 
@@ -49,8 +49,8 @@ const Home: React.FC<HomeProps> = ({ onNavigate }) => {
           // Format logo URLs to full URLs if needed
           const formattedBrands = response.data.brands.map((brand: any) => {
             let logoUrl = brand.logo_url || null;
-            if (logoUrl && !logoUrl.startsWith('http') && logoUrl.startsWith('/')) {
-              logoUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${logoUrl}`;
+            if (logoUrl && !logoUrl.startsWith('http')) {
+              logoUrl = getFullUrl(logoUrl);
             }
             return {
               ...brand,
@@ -82,9 +82,7 @@ const Home: React.FC<HomeProps> = ({ onNavigate }) => {
           let imageUrl = deal.image_url || null;
           console.log('Deal image URL:', imageUrl);
           if (imageUrl && !imageUrl.startsWith('http')) {
-            // Handle both relative paths with and without leading slash
-            const imagePath = imageUrl.startsWith('/') ? imageUrl : `/${imageUrl}`;
-            imageUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${imagePath}`;
+            imageUrl = getFullUrl(imageUrl);
             console.log('Formatted deal image URL:', imageUrl);
           }
           setActiveDeal({ ...deal, image_url: imageUrl });
@@ -184,8 +182,8 @@ const Home: React.FC<HomeProps> = ({ onNavigate }) => {
         if (response.success && response.data?.categories) {
           const formattedCategories = response.data.categories.map((cat: any) => {
             let imageUrl = cat.image_url || null;
-            if (imageUrl && !imageUrl.startsWith('http') && imageUrl.startsWith('/')) {
-              imageUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${imageUrl}`;
+            if (imageUrl && !imageUrl.startsWith('http')) {
+              imageUrl = getFullUrl(imageUrl);
             }
             return {
               ...cat,
@@ -218,9 +216,7 @@ const Home: React.FC<HomeProps> = ({ onNavigate }) => {
             let mainImage = product.image || null;
             console.log('Product:', product.nameAr || product.name, 'Original image:', mainImage);
             if (mainImage && !mainImage.startsWith('http')) {
-              // Handle both relative paths with and without leading slash
-              const imagePath = mainImage.startsWith('/') ? mainImage : `/${mainImage}`;
-              mainImage = `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${imagePath}`;
+              mainImage = getFullUrl(mainImage);
               console.log('Formatted mainImage:', mainImage);
             }
             

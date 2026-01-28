@@ -129,7 +129,7 @@ const AdminDeals: React.FC<AdminDealsProps> = ({ onNavigate }) => {
         const formattedDeals = response.data.deals.map((deal: any) => {
           let imageUrl = deal.image_url || null;
           if (imageUrl && !imageUrl.startsWith('http') && imageUrl.startsWith('/')) {
-            imageUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${imageUrl}`;
+            imageUrl = `${import.meta.env.VITE_API_URL || 'https://kingofmuscles.metacodecx.com'}${imageUrl}`;
           }
           return { ...deal, image_url: imageUrl };
         });
@@ -231,7 +231,7 @@ const AdminDeals: React.FC<AdminDealsProps> = ({ onNavigate }) => {
         const formData = new FormData();
         formData.append('image', addImageFile);
 
-        const uploadResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/upload/deal`, {
+        const uploadResponse = await fetch(`${import.meta.env.VITE_API_URL || 'https://kingofmuscles.metacodecx.com/api'}/upload/deal`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -289,7 +289,7 @@ const AdminDeals: React.FC<AdminDealsProps> = ({ onNavigate }) => {
     // Ensure image_url has full URL if it's a relative path
     let imageUrl = deal.image_url || '';
     if (imageUrl && !imageUrl.startsWith('http') && imageUrl.startsWith('/')) {
-      imageUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${imageUrl}`;
+      imageUrl = `${import.meta.env.VITE_API_URL || 'https://kingofmuscles.metacodecx.com'}${imageUrl}`;
     }
     setEditForm({
       title_ar: deal.title_ar,
@@ -327,7 +327,7 @@ const AdminDeals: React.FC<AdminDealsProps> = ({ onNavigate }) => {
         const formData = new FormData();
         formData.append('image', editImageFile);
 
-        const uploadResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/upload/deal`, {
+        const uploadResponse = await fetch(`${import.meta.env.VITE_API_URL || 'https://kingofmuscles.metacodecx.com/api'}/upload/deal`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`

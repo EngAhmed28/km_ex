@@ -32,7 +32,7 @@ const NewArrivals: React.FC<NewArrivalsProps> = ({ onNavigate }) => {
           const formattedProducts = response.data.products.map((product: any) => {
             let imageUrl = product.image || null;
             if (imageUrl && !imageUrl.startsWith('http') && imageUrl.startsWith('/')) {
-              imageUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${imageUrl}`;
+              imageUrl = `${import.meta.env.VITE_API_URL || 'https://kingofmuscles.metacodecx.com'}${imageUrl}`;
             }
             return {
               ...product,

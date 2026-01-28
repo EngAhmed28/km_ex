@@ -116,7 +116,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ id, onNavigate }) => {
           // Convert relative path to full URL if needed
           let imageUrl = prod.image || null;
           if (imageUrl && !imageUrl.startsWith('http') && imageUrl.startsWith('/')) {
-            imageUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${imageUrl}`;
+            imageUrl = `${import.meta.env.VITE_API_URL || 'https://kingofmuscles.metacodecx.com'}${imageUrl}`;
           }
           
           // Process images array
@@ -124,7 +124,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ id, onNavigate }) => {
           if (prod.images && Array.isArray(prod.images) && prod.images.length > 0) {
             imagesArray = prod.images.map((img: string) => {
               if (img && !img.startsWith('http') && img.startsWith('/')) {
-                return `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${img}`;
+                return `${import.meta.env.VITE_API_URL || 'https://kingofmuscles.metacodecx.com'}${img}`;
               }
               return img;
             });
@@ -200,7 +200,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ id, onNavigate }) => {
               .map((p: any) => {
                 let imageUrl = p.image || null;
                 if (imageUrl && !imageUrl.startsWith('http') && imageUrl.startsWith('/')) {
-                  imageUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${imageUrl}`;
+                  imageUrl = `${import.meta.env.VITE_API_URL || 'https://kingofmuscles.metacodecx.com'}${imageUrl}`;
                 }
                 return { ...p, image: imageUrl || '' };
               });
@@ -941,13 +941,13 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ id, onNavigate }) => {
                           const prod = response.data.product;
                           let imageUrl = prod.image || null;
                           if (imageUrl && !imageUrl.startsWith('http') && imageUrl.startsWith('/')) {
-                            imageUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${imageUrl}`;
+                            imageUrl = `${import.meta.env.VITE_API_URL || 'https://kingofmuscles.metacodecx.com'}${imageUrl}`;
                           }
                           let imagesArray: string[] = [];
                           if (prod.images && Array.isArray(prod.images) && prod.images.length > 0) {
                             imagesArray = prod.images.map((img: string) => {
                               if (img && !img.startsWith('http') && img.startsWith('/')) {
-                                return `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${img}`;
+                                return `${import.meta.env.VITE_API_URL || 'https://kingofmuscles.metacodecx.com'}${img}`;
                               }
                               return img;
                             });

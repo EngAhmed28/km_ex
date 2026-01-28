@@ -1,7 +1,44 @@
 // API utility functions for connecting to backend
+// Detect environment: development (localhost) or production (online)
+const isDevelopment = import.meta.env.DEV || 
+  (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'));
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 
+  (isDevelopment 
+    ? 'http://localhost:5000/api' 
+    : 'https://kingofmuscles.metacodecx.com/api');
 
+const IMAGE_BASE_URL = import.meta.env.VITE_IMAGE_URL || 
+  (isDevelopment 
+    ? 'http://localhost:5000' 
+    : 'https://kingofmuscles.metacodecx.com');
+
+// Helper function to get API base URL (can be used in other files)
+export const getApiBaseUrl = () => API_BASE_URL;
+
+// Helper function to get Image base URL (can be used in other files)
+export const getImageBaseUrl = () => IMAGE_BASE_URL;
+
+// Helper function to get full URL for images/paths
+export const getFullUrl = (path) => {
+  if (!path) return '';
+  if (path.startsWith('http')) return path;
+  // Ensure path starts with / if it's a relative path
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  return `${IMAGE_BASE_URL}${normalizedPath}`;
+};
+
+// Log for debugging (only in development)
+if (isDevelopment) {
+  console.log('🔧 Environment: Development (Localhost)');
+  console.log('🔗 API URL:', API_BASE_URL);
+  console.log('🖼️ Image URL:', IMAGE_BASE_URL);
+}
+
+// Legacy function - use getFullUrl instead (kept for backward compatibility)
+export const getFullImageUrl = (path) => {
+  return getFullUrl(path);
+};
 // Helper function to make API requests
 export const apiRequest = async (endpoint, options = {}) => {
   const token = localStorage.getItem('token');

@@ -8,25 +8,25 @@ export const getSiteSettings = async (req, res) => {
     );
     
     if (settings.length === 0) {
-      // Return default settings if none exist
+      // Return empty settings if none exist - no fake data
       return res.json({
         success: true,
         data: {
           settings: {
-            site_name_ar: 'King of Muscles',
-            site_name_en: 'King of Muscles',
+            site_name_ar: null,
+            site_name_en: null,
             logo_url: null,
-            footer_description_ar: 'King of Muscles هو وجهتك الأولى للحصول على أجود أنواع المكملات الغذائية في العالم العربي.',
-            footer_description_en: 'King of Muscles is your first destination to get the best types of nutritional supplements in the Arab world.',
+            footer_description_ar: null,
+            footer_description_en: null,
             facebook_url: null,
             instagram_url: null,
             twitter_url: null,
             youtube_url: null,
-            address_ar: 'الرياض، المملكة العربية السعودية - شارع التحلية',
-            address_en: 'Riyadh, Kingdom of Saudi Arabia - Tahlia Street',
-            phone: '+966 50 123 4567',
-            email: 'info@kingofmuscles.com',
-            transfer_number: '03000000000',
+            address_ar: null,
+            address_en: null,
+            phone: null,
+            email: null,
+            transfer_number: null,
             shop_links: [],
             support_links: []
           }

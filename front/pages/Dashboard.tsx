@@ -377,7 +377,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                 // Format image URL
                 let imageUrl = product.image_url || '';
                 if (imageUrl && !imageUrl.startsWith('http') && imageUrl.startsWith('/')) {
-                  imageUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${imageUrl}`;
+                  imageUrl = `${import.meta.env.VITE_API_URL || 'https://kingofmuscles.metacodecx.com'}${imageUrl}`;
                 }
                 
                 const productData = {

@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../context/LanguageContext';
-import { siteSettingsAPI } from '../utils/api';
+import { siteSettingsAPI, getFullUrl } from '../utils/api';
 import { Facebook, Instagram, Twitter, Youtube, MapPin, Phone, Mail } from 'lucide-react';
 
 const Footer: React.FC = () => {
@@ -15,35 +15,43 @@ const Footer: React.FC = () => {
   const fetchSettings = async () => {
     try {
       const response = await siteSettingsAPI.getSiteSettings();
+      console.log('Footer - Site Settings Response:', response);
       if (response.success && response.data?.settings) {
+        console.log('Footer - Settings loaded:', response.data.settings);
         setSettings(response.data.settings);
+      } else {
+        console.warn('Footer - No settings in response');
+        // Don't set fake data - let it be null so nothing displays
+        setSettings(null);
       }
     } catch (err) {
       console.error('Failed to fetch site settings:', err);
+      // Don't set fake data on error - let it be null
+      setSettings(null);
     }
   };
 
-  if (!settings) {
-    // Fallback to default values while loading
-    return (
-      <footer className="bg-secondary text-white pt-16 pb-8">
-        <div className="container mx-auto px-4">
-          <div className="text-center text-gray-400">{t('loading')}</div>
-        </div>
-      </footer>
-    );
+  const siteName = settings ? (language === 'ar' ? (settings.site_name_ar || '') : (settings.site_name_en || '')) : '';
+  const footerDescription = settings ? (language === 'ar' ? settings.footer_description_ar : settings.footer_description_en) : null;
+  const address = settings ? (language === 'ar' ? settings.address_ar : settings.address_en) : null;
+  
+  // Debug logging
+  if (settings) {
+    console.log('Footer - Current settings:', {
+      address_ar: settings.address_ar,
+      address_en: settings.address_en,
+      phone: settings.phone,
+      email: settings.email,
+      address: address
+    });
   }
 
-  const siteName = language === 'ar' ? settings.site_name_ar : settings.site_name_en;
-  const footerDescription = language === 'ar' ? settings.footer_description_ar : settings.footer_description_en;
-  const address = language === 'ar' ? settings.address_ar : settings.address_en;
-
-  const socialLinks = [
+  const socialLinks = settings ? [
     { Icon: Facebook, url: settings.facebook_url },
     { Icon: Instagram, url: settings.instagram_url },
     { Icon: Twitter, url: settings.twitter_url },
     { Icon: Youtube, url: settings.youtube_url }
-  ].filter(link => link.url);
+  ].filter(link => link.url) : [];
 
   return (
     <footer className="bg-secondary text-white pt-16 pb-8">
@@ -52,16 +60,33 @@ const Footer: React.FC = () => {
           
           {/* Brand Info */}
           <div>
-            <div className="flex items-center gap-2 mb-6">
-              <div className="bg-primary text-white p-3 rounded-lg font-black text-3xl">KM</div>
-              <div>
-                <p className="font-extrabold text-2xl leading-none">{siteName.split(' ').slice(0, -1).join(' ')}</p>
-                <p className="font-extrabold text-2xl leading-none text-primary">{siteName.split(' ').slice(-1).join(' ')}</p>
+            {(siteName || settings?.logo_url) && (
+              <div className="flex items-center gap-2 mb-6">
+                {settings?.logo_url ? (
+                  <img 
+                    src={getFullUrl(settings.logo_url)} 
+                    alt={siteName || 'Logo'}
+                    className="h-12 object-contain"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                    }}
+                  />
+                ) : (
+                  <div className="bg-primary text-white p-3 rounded-lg font-black text-3xl">KM</div>
+                )}
+                {siteName && (
+                  <div>
+                    <p className="font-extrabold text-2xl leading-none">{siteName.split(' ').slice(0, -1).join(' ')}</p>
+                    <p className="font-extrabold text-2xl leading-none text-primary">{siteName.split(' ').slice(-1).join(' ')}</p>
+                  </div>
+                )}
               </div>
-            </div>
-            <p className="text-gray-400 leading-relaxed text-sm mb-6">
-              {footerDescription || t('footerAbout')}
-            </p>
+            )}
+            {footerDescription && (
+              <p className="text-gray-400 leading-relaxed text-sm mb-6">
+                {footerDescription}
+              </p>
+            )}
             {socialLinks.length > 0 && (
               <div className="flex gap-4">
                 {socialLinks.map(({ Icon, url }, i) => (
@@ -80,7 +105,7 @@ const Footer: React.FC = () => {
           </div>
 
           {/* Quick Links */}
-          {settings.shop_links && settings.shop_links.length > 0 && (
+          {settings?.shop_links && settings.shop_links.length > 0 && (
             <div>
               <h3 className="text-lg font-bold mb-6 border-b border-primary/30 pb-2 inline-block">{t('shop')}</h3>
               <ul className="space-y-4 text-gray-400 text-sm">
@@ -99,7 +124,7 @@ const Footer: React.FC = () => {
           )}
 
           {/* Support */}
-          {settings.support_links && settings.support_links.length > 0 && (
+          {settings?.support_links && settings.support_links.length > 0 && (
             <div>
               <h3 className="text-lg font-bold mb-6 border-b border-primary/30 pb-2 inline-block">{t('support')}</h3>
               <ul className="space-y-4 text-gray-400 text-sm">
@@ -121,24 +146,29 @@ const Footer: React.FC = () => {
           <div>
             <h3 className="text-lg font-bold mb-6 border-b border-primary/30 pb-2 inline-block">{t('connectWithUs')}</h3>
             <ul className="space-y-4 text-gray-400 text-sm">
-              {address && (
+              {address ? (
                 <li className="flex items-start gap-3">
                   <MapPin className="text-primary mt-1 shrink-0" size={18} />
                   <span>{address}</span>
                 </li>
-              )}
-              {settings.phone && (
+              ) : settings?.address_ar ? (
+                <li className="flex items-start gap-3">
+                  <MapPin className="text-primary mt-1 shrink-0" size={18} />
+                  <span>{language === 'ar' ? settings.address_ar : (settings.address_en || settings.address_ar)}</span>
+                </li>
+              ) : null}
+              {settings?.phone ? (
                 <li className="flex items-center gap-3">
                   <Phone className="text-primary shrink-0" size={18} />
                   <span dir="ltr">{settings.phone}</span>
                 </li>
-              )}
-              {settings.email && (
+              ) : null}
+              {settings?.email ? (
                 <li className="flex items-center gap-3">
                   <Mail className="text-primary shrink-0" size={18} />
                   <span>{settings.email}</span>
                 </li>
-              )}
+              ) : null}
             </ul>
           </div>
         </div>

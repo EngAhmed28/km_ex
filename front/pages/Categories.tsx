@@ -4,6 +4,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { categoriesAPI } from '../utils/api';
 import { ChevronRight } from 'lucide-react';
 
+
 interface Category {
   id: number;
   name: string;
@@ -40,7 +41,7 @@ const Categories: React.FC<CategoriesProps> = ({ onNavigate }) => {
           let imageUrl = cat.image_url || null;
           // Convert relative path to full URL if needed
           if (imageUrl && !imageUrl.startsWith('http') && imageUrl.startsWith('/')) {
-            imageUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${imageUrl}`;
+            imageUrl = `${import.meta.env.VITE_API_URL || 'https://kingofmuscles.metacodecx.com'}${imageUrl}`;
           }
           return {
             id: cat.id,

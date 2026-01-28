@@ -222,7 +222,7 @@ const AdminProducts: React.FC<AdminProductsProps> = ({ onNavigate }) => {
         const formattedProducts = response.data.products.map((product: any) => {
           let imageUrl = product.image || null;
           if (imageUrl && !imageUrl.startsWith('http') && imageUrl.startsWith('/')) {
-            imageUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${imageUrl}`;
+            imageUrl = `${import.meta.env.VITE_API_URL || 'https://kingofmuscles.metacodecx.com'}${imageUrl}`;
           }
           return {
             ...product,
@@ -366,7 +366,7 @@ const AdminProducts: React.FC<AdminProductsProps> = ({ onNavigate }) => {
             formData.append('images', file);
           });
 
-          const uploadResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/upload/products`, {
+          const uploadResponse = await fetch(`${import.meta.env.VITE_API_URL || 'https://kingofmuscles.metacodecx.com/api'}/upload/products`, {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -474,7 +474,7 @@ const AdminProducts: React.FC<AdminProductsProps> = ({ onNavigate }) => {
               id: img.id,
               url: img.image_url.startsWith('http') 
                 ? img.image_url 
-                : `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${img.image_url}`,
+                : `${import.meta.env.VITE_API_URL || 'https://kingofmuscles.metacodecx.com'}${img.image_url}`,
               is_primary: img.is_primary === 1
             }));
             setProductImages(images);
@@ -569,7 +569,7 @@ const AdminProducts: React.FC<AdminProductsProps> = ({ onNavigate }) => {
             formData.append('images', file);
           });
 
-          const uploadResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/upload/products`, {
+          const uploadResponse = await fetch(`${import.meta.env.VITE_API_URL || 'https://kingofmuscles.metacodecx.com/api'}/upload/products`, {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${localStorage.getItem('token')}`
