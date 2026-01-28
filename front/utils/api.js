@@ -1,17 +1,40 @@
 // API utility functions for connecting to backend
 // Detect environment: development (localhost) or production (online)
-const isDevelopment = import.meta.env.DEV || 
-  (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'));
+// Priority: 1. Environment variable, 2. Check current URL hostname
 
+let isProduction = false;
+let isDevelopment = false;
+
+if (typeof window !== 'undefined') {
+  const hostname = window.location.hostname.toLowerCase();
+  
+  // Check if we're on production domain (most reliable check)
+  isProduction = hostname === 'kingofmuscles.metacodecx.com' || 
+                 hostname.includes('metacodecx.com') ||
+                 hostname.includes('kingofmuscles');
+  
+  // Check if we're on localhost (most reliable check)
+  isDevelopment = hostname === 'localhost' || 
+                  hostname === '127.0.0.1' ||
+                  hostname === '0.0.0.0' ||
+                  hostname.startsWith('192.168.') ||
+                  hostname.startsWith('10.0.');
+} else {
+  // Server-side rendering - default to development
+  isDevelopment = true;
+  isProduction = false;
+}
+
+// Use environment variable if set, otherwise detect automatically
 const API_BASE_URL = import.meta.env.VITE_API_URL || 
-  (isDevelopment 
-    ? 'http://localhost:5000/api' 
-    : 'https://kingofmuscles.metacodecx.com/api');
+  (isProduction 
+    ? 'https://kingofmuscles.metacodecx.com/api' 
+    : 'http://localhost:5000/api');
 
 const IMAGE_BASE_URL = import.meta.env.VITE_IMAGE_URL || 
-  (isDevelopment 
-    ? 'http://localhost:5000' 
-    : 'https://kingofmuscles.metacodecx.com');
+  (isProduction 
+    ? 'https://kingofmuscles.metacodecx.com' 
+    : 'http://localhost:5000');
 
 // Helper function to get API base URL (can be used in other files)
 export const getApiBaseUrl = () => API_BASE_URL;
@@ -28,11 +51,14 @@ export const getFullUrl = (path) => {
   return `${IMAGE_BASE_URL}${normalizedPath}`;
 };
 
-// Log for debugging (only in development)
-if (isDevelopment) {
-  console.log('🔧 Environment: Development (Localhost)');
+// Log for debugging (only log once, not on every import)
+if (typeof window !== 'undefined' && !window.__API_CONFIG_LOGGED__) {
+  window.__API_CONFIG_LOGGED__ = true;
+  console.log('🌐 Environment:', isProduction ? 'Production (Online)' : 'Development (Localhost)');
   console.log('🔗 API URL:', API_BASE_URL);
   console.log('🖼️ Image URL:', IMAGE_BASE_URL);
+  console.log('📍 Current Hostname:', window.location.hostname);
+  console.log('🔒 Protocol:', window.location.protocol);
 }
 
 // Legacy function - use getFullUrl instead (kept for backward compatibility)

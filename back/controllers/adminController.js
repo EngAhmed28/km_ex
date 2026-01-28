@@ -57,9 +57,12 @@ export const getAllUsers = async (req, res) => {
     });
   } catch (error) {
     console.error('Get all users error:', error);
+    console.error('Error stack:', error.stack);
     res.status(500).json({
       success: false,
-      message: 'حدث خطأ أثناء جلب المستخدمين'
+      message: 'حدث خطأ أثناء جلب المستخدمين',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 };

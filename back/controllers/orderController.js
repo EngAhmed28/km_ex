@@ -385,10 +385,12 @@ export const getAllOrders = async (req, res) => {
     });
   } catch (error) {
     console.error('Get all orders error:', error);
+    console.error('Error stack:', error.stack);
     res.status(500).json({
       success: false,
       message: 'حدث خطأ أثناء جلب الطلبات',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 };
