@@ -26,6 +26,7 @@ export const getSiteSettings = async (req, res) => {
             address_en: 'Riyadh, Kingdom of Saudi Arabia - Tahlia Street',
             phone: '+966 50 123 4567',
             email: 'info@kingofmuscles.com',
+            transfer_number: '03000000000',
             shop_links: [],
             support_links: []
           }
@@ -69,6 +70,7 @@ export const getSiteSettings = async (req, res) => {
           address_en: setting.address_en,
           phone: setting.phone,
           email: setting.email,
+          transfer_number: setting.transfer_number || '03000000000',
           shop_links: shop_links,
           support_links: support_links
         }
@@ -100,6 +102,7 @@ export const updateSiteSettings = async (req, res) => {
       address_en,
       phone,
       email,
+      transfer_number,
       shop_links,
       support_links
     } = req.body;
@@ -127,9 +130,9 @@ export const updateSiteSettings = async (req, res) => {
           site_name_ar, site_name_en, logo_url,
           footer_description_ar, footer_description_en,
           facebook_url, instagram_url, twitter_url, youtube_url,
-          address_ar, address_en, phone, email,
+          address_ar, address_en, phone, email, transfer_number,
           shop_links, support_links
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           site_name_ar || 'King of Muscles',
           site_name_en || 'King of Muscles',
@@ -144,6 +147,7 @@ export const updateSiteSettings = async (req, res) => {
           address_en || null,
           phone || null,
           email || null,
+          transfer_number || '03000000000',
           shopLinksJson,
           supportLinksJson
         ]
@@ -221,6 +225,10 @@ export const updateSiteSettings = async (req, res) => {
       if (email !== undefined) {
         updates.push('email = ?');
         values.push(email);
+      }
+      if (transfer_number !== undefined) {
+        updates.push('transfer_number = ?');
+        values.push(transfer_number);
       }
       if (shopLinksJson !== null) {
         updates.push('shop_links = ?');

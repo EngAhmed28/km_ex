@@ -5,6 +5,7 @@ import { AuthProvider } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
 import { WishlistProvider } from './context/WishlistContext';
 import { DiscountProvider } from './context/DiscountContext';
+import { siteSettingsAPI } from './utils/api';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import Home from './pages/Home';
@@ -23,6 +24,24 @@ import Orders from './pages/Orders';
 const App: React.FC = () => {
   const [currentPage, setCurrentPage] = useState('home');
   const [pageParams, setPageParams] = useState<any>({});
+
+  // Set favicon
+  useEffect(() => {
+    const logoUrl = '/images/apple-touch-icon.png';
+          
+          // Create multiple favicon elements for different sizes
+          const favicon16 = (document.querySelector('link[rel="icon"][sizes="16x16"]') || document.createElement('link')) as HTMLLinkElement;
+          favicon16.rel = 'icon';
+          favicon16.type = 'image/png';
+          favicon16.sizes = '32x32';
+          favicon16.href = logoUrl;
+
+ 
+          
+
+          document.head.appendChild(favicon16);
+        
+  }, []);
 
   // Scroll to top on page change
   useEffect(() => {

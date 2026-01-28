@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useCart } from '../context/CartContext';
-import { useAuth } from '../context/AuthContext';
-import { useDiscount } from '../context/DiscountContext';
+import { siteSettingsAPI } from '../utils/api';
+import { ArrowRight, MapPin, CreditCard, Smartphone, Truck, Shield, Check, User, Phone, Mail, Clipboard, Loader2, ArrowLeft } from 'lucide-react';
 import { calculateDiscountedPrice, isDiscountActive } from '../utils/discount';
 import { ordersAPI } from '../utils/api';
-import { User, CreditCard, MapPin, Phone, Mail, Clipboard, Check, Loader2, ArrowLeft, ArrowRight } from 'lucide-react';
+import { useDiscount } from '../context/DiscountContext';
 
 interface CheckoutProps {
   onNavigate: (page: string, params?: any) => void;
@@ -22,6 +23,7 @@ const Checkout: React.FC<CheckoutProps> = ({ onNavigate }) => {
   const [accountCreated, setAccountCreated] = useState(false);
   const [temporaryPassword, setTemporaryPassword] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [siteSettings, setSiteSettings] = useState<any>(null);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -63,6 +65,21 @@ const Checkout: React.FC<CheckoutProps> = ({ onNavigate }) => {
       onNavigate('cart');
     }
   }, [cart, orderPlaced, onNavigate]);
+
+  // Fetch site settings for transfer number
+  useEffect(() => {
+    const fetchSiteSettings = async () => {
+      try {
+        const response = await siteSettingsAPI.getSiteSettings();
+        if (response.success && response.data?.settings) {
+          setSiteSettings(response.data.settings);
+        }
+      } catch (err) {
+        console.error('Failed to fetch site settings:', err);
+      }
+    };
+    fetchSiteSettings();
+  }, []);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -465,7 +482,7 @@ const Checkout: React.FC<CheckoutProps> = ({ onNavigate }) => {
             </div>
             <div className="space-y-2 text-sm font-bold text-gray-700">
               <p>{t('advancePayment')}</p>
-              <p>{t('transferNumber')}</p>
+              <p>{t('transferNumber')} {siteSettings?.transfer_number || '03000000000'}</p>
               <p>{t('sendTransferOnWhatsapp')}</p>
             </div>
           </div>

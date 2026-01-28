@@ -162,7 +162,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                     </div>
                   </div>
                   <h3 className="text-gray-500 text-sm font-bold mb-1">إجمالي المشتريات</h3>
-                  <p className="text-3xl font-black">{(dashboardData.stats.totalSpent || 0).toFixed(2)} ر.س</p>
+                  <p className="text-3xl font-black">{(dashboardData.stats.totalSpent || 0).toFixed(2)} ج.م</p>
                 </div>
 
                 <div className="bg-white rounded-3xl p-6 shadow-lg">
@@ -335,7 +335,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                     </div>
                   </div>
                   <div className="text-left">
-                    <p className="font-black text-primary mb-1">{parseFloat(order.total_amount || 0).toFixed(2)} {language === 'ar' ? 'ر.س' : 'SAR'}</p>
+                    <p className="font-black text-primary mb-1">{parseFloat(order.total_amount || 0).toFixed(2)} {language === 'ar' ? 'ج.م' : 'EGP'}</p>
                     <span className={`text-xs px-2 py-1 rounded-lg font-bold ${
                       order.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
                       order.status === 'processing' ? 'bg-blue-100 text-blue-800' :

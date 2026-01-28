@@ -23,6 +23,7 @@ interface SiteSettings {
   address_en: string;
   phone: string;
   email: string;
+  transfer_number: string;
   shop_links: Array<{ label_ar: string; label_en: string; url: string }>;
   support_links: Array<{ label_ar: string; label_en: string; url: string }>;
 }
@@ -46,6 +47,7 @@ const AdminSiteSettings: React.FC<AdminSiteSettingsProps> = ({ onNavigate }) => 
     address_en: '',
     phone: '',
     email: '',
+    transfer_number: '',
     shop_links: [],
     support_links: []
   });
@@ -121,6 +123,7 @@ const AdminSiteSettings: React.FC<AdminSiteSettingsProps> = ({ onNavigate }) => 
   const handleSave = async () => {
     try {
       setSaving(true);
+      console.log('Saving settings:', settings);
       let logoUrl: string | null = settings.logo_url;
 
       // Upload logo if new file is selected
@@ -146,10 +149,14 @@ const AdminSiteSettings: React.FC<AdminSiteSettingsProps> = ({ onNavigate }) => 
 
       const response = await siteSettingsAPI.updateSiteSettings({
         ...settings,
-        logo_url: logoUrl
+        logo_url: logoUrl,
+        transfer_number: settings.transfer_number
       });
 
+      console.log('API Response:', response);
+
       if (response.success) {
+        console.log('Settings saved successfully');
         alert(language === 'ar' ? 'تم حفظ الإعدادات بنجاح' : 'Settings saved successfully');
         setLogoFile(null);
         // Update logo preview with the new URL
@@ -162,8 +169,12 @@ const AdminSiteSettings: React.FC<AdminSiteSettingsProps> = ({ onNavigate }) => 
         }
         // Update settings state
         setSettings({ ...settings, logo_url: logoUrl });
+      } else {
+        console.error('Save failed:', response);
+        alert(response.message || (language === 'ar' ? 'فشل حفظ الإعدادات' : 'Failed to save settings'));
       }
     } catch (err: any) {
+      console.error('Save error:', err);
       alert(err.message || (language === 'ar' ? 'فشل حفظ الإعدادات' : 'Failed to save settings'));
     } finally {
       setSaving(false);
@@ -434,6 +445,16 @@ const AdminSiteSettings: React.FC<AdminSiteSettingsProps> = ({ onNavigate }) => 
                   className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-primary"
                 />
               </div>
+            </div>
+            <div>
+              <label className="block text-sm font-bold mb-2">{language === 'ar' ? 'رقم التحويل' : 'Transfer Number'}</label>
+              <input
+                type="text"
+                value={settings.transfer_number}
+                onChange={(e) => setSettings({ ...settings, transfer_number: e.target.value })}
+                placeholder={language === 'ar' ? '03000000000' : '03000000000'}
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-primary"
+              />
             </div>
           </div>
         </div>

@@ -749,9 +749,9 @@ const AdminProducts: React.FC<AdminProductsProps> = ({ onNavigate }) => {
                         <div className="text-sm text-gray-500">{product.category}</div>
                       </td>
                       <td className="px-6 py-4">
-                        <div className="font-bold text-primary">{product.price} {language === 'ar' ? 'ر.س' : 'SAR'}</div>
+                        <div className="font-bold text-primary">{product.price} {language === 'ar' ? 'ج.م' : 'EGP'}</div>
                         {product.oldPrice && (
-                          <div className="text-sm text-gray-400 line-through">{product.oldPrice} {language === 'ar' ? 'ر.س' : 'SAR'}</div>
+                          <div className="text-sm text-gray-400 line-through">{product.oldPrice} {language === 'ar' ? 'ج.م' : 'EGP'}</div>
                         )}
                       </td>
                       <td className="px-6 py-4 font-bold">{product.stock}</td>

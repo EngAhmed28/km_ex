@@ -231,7 +231,7 @@ const Shop: React.FC<ShopProps> = ({ onNavigate, initialParams }) => {
             <div className="mb-8">
               <div className="flex justify-between items-center mb-4">
                 <h4 className="font-black text-[10px] uppercase tracking-[0.2em] text-gray-400">{t('price')}</h4>
-                <span className="text-xs font-black text-primary">{priceRange} {language === 'ar' ? 'ر.س' : 'SAR'}</span>
+                <span className="text-xs font-black text-primary">{priceRange} {language === 'ar' ? 'ج.م' : 'EGP'}</span>
               </div>
               <input 
                 type="range" 

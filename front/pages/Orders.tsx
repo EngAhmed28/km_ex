@@ -192,7 +192,7 @@ const Orders: React.FC<OrdersProps> = ({ onNavigate }) => {
                   </div>
                   <div className="text-left ml-4">
                     <p className="text-2xl font-black text-primary mb-2">
-                      {order.total_amount.toFixed(2)} {language === 'ar' ? 'ر.س' : 'SAR'}
+                      {order.total_amount.toFixed(2)} {language === 'ar' ? 'ج.م' : 'EGP'}
                     </p>
                     <button
                       onClick={() => setSelectedOrder(order)}
@@ -256,7 +256,7 @@ const Orders: React.FC<OrdersProps> = ({ onNavigate }) => {
               <div className="bg-gray-50 rounded-xl p-4">
                 <p className="text-sm text-gray-500 mb-1">{language === 'ar' ? 'المبلغ الإجمالي' : 'Total Amount'}</p>
                 <p className="text-2xl font-black text-primary">
-                  {selectedOrder.total_amount.toFixed(2)} {language === 'ar' ? 'ر.س' : 'SAR'}
+                  {selectedOrder.total_amount.toFixed(2)} {language === 'ar' ? 'ج.م' : 'EGP'}
                 </p>
               </div>
 
@@ -273,7 +273,7 @@ const Orders: React.FC<OrdersProps> = ({ onNavigate }) => {
                           </p>
                         </div>
                         <p className="font-black text-primary">
-                          {(item.price * item.quantity).toFixed(2)} {language === 'ar' ? 'ر.س' : 'SAR'}
+                          {(item.price * item.quantity).toFixed(2)} {language === 'ar' ? 'ج.م' : 'EGP'}
                         </p>
                       </div>
                     ))}

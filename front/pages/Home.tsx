@@ -80,8 +80,12 @@ const Home: React.FC<HomeProps> = ({ onNavigate }) => {
           const deal = response.data.deal;
           // Format image URL if needed
           let imageUrl = deal.image_url || null;
-          if (imageUrl && !imageUrl.startsWith('http') && imageUrl.startsWith('/')) {
-            imageUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${imageUrl}`;
+          console.log('Deal image URL:', imageUrl);
+          if (imageUrl && !imageUrl.startsWith('http')) {
+            // Handle both relative paths with and without leading slash
+            const imagePath = imageUrl.startsWith('/') ? imageUrl : `/${imageUrl}`;
+            imageUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${imagePath}`;
+            console.log('Formatted deal image URL:', imageUrl);
           }
           setActiveDeal({ ...deal, image_url: imageUrl });
           
@@ -207,12 +211,17 @@ const Home: React.FC<HomeProps> = ({ onNavigate }) => {
     const fetchProducts = async () => {
       try {
         const response = await productsAPI.getAllProducts({ limit: 20 });
+        console.log('Products API Response:', response);
         if (response.success && response.data?.products) {
           const formattedProducts = response.data.products.map((product: any) => {
             // Format product images
-            let mainImage = product.main_image || null;
-            if (mainImage && !mainImage.startsWith('http') && mainImage.startsWith('/')) {
-              mainImage = `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${mainImage}`;
+            let mainImage = product.image || null;
+            console.log('Product:', product.nameAr || product.name, 'Original image:', mainImage);
+            if (mainImage && !mainImage.startsWith('http')) {
+              // Handle both relative paths with and without leading slash
+              const imagePath = mainImage.startsWith('/') ? mainImage : `/${mainImage}`;
+              mainImage = `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${imagePath}`;
+              console.log('Formatted mainImage:', mainImage);
             }
             
             return {

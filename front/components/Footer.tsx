@@ -53,25 +53,11 @@ const Footer: React.FC = () => {
           {/* Brand Info */}
           <div>
             <div className="flex items-center gap-2 mb-6">
-              {settings.logo_url ? (
-                <img 
-                  src={`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${settings.logo_url}`} 
-                  alt={siteName}
-                  className="h-12 object-contain"
-                  onError={(e) => {
-                    // Fallback to text logo if image fails
-                    e.currentTarget.style.display = 'none';
-                  }}
-                />
-              ) : (
-                <>
-                  <div className="bg-primary text-white p-2 rounded-lg font-black text-2xl">KM</div>
-                  <div>
-                    <p className="font-extrabold text-xl leading-none">{siteName.split(' ').slice(0, -1).join(' ')}</p>
-                    <p className="font-extrabold text-xl leading-none text-primary">{siteName.split(' ').slice(-1).join(' ')}</p>
-                  </div>
-                </>
-              )}
+              <div className="bg-primary text-white p-3 rounded-lg font-black text-3xl">KM</div>
+              <div>
+                <p className="font-extrabold text-2xl leading-none">{siteName.split(' ').slice(0, -1).join(' ')}</p>
+                <p className="font-extrabold text-2xl leading-none text-primary">{siteName.split(' ').slice(-1).join(' ')}</p>
+              </div>
             </div>
             <p className="text-gray-400 leading-relaxed text-sm mb-6">
               {footerDescription || t('footerAbout')}

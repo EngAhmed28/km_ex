@@ -219,6 +219,18 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, initialTab 
               
               return (
                 <>
+                  {user.role === 'admin' && (
+                    <button
+                      onClick={() => setActiveTab('settings')}
+                      className={`px-6 py-3 rounded-2xl font-bold transition-all ${
+                        activeTab === 'settings'
+                          ? 'bg-primary text-white'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      }`}
+                    >
+                      {language === 'ar' ? 'الإعدادات' : 'Settings'}
+                    </button>
+                  )}
                   {hasPermission('users') && (
                     <button
                       onClick={() => setActiveTab('users')}
@@ -308,16 +320,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, initialTab 
                         }`}
                       >
                         {language === 'ar' ? 'الأهداف' : 'Goals'}
-                      </button>
-                      <button
-                        onClick={() => setActiveTab('settings')}
-                        className={`px-6 py-3 rounded-2xl font-bold transition-all ${
-                          activeTab === 'settings'
-                            ? 'bg-primary text-white'
-                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                        }`}
-                      >
-                        {language === 'ar' ? 'الإعدادات' : 'Settings'}
                       </button>
                     </>
                   )}
