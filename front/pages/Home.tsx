@@ -1,10 +1,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../context/LanguageContext';
-import { products, categories } from '../data/mockData';
 import ProductCard from '../components/ProductCard';
 import { useCart } from '../context/CartContext';
-import { brandsAPI, dealsAPI, goalsAPI } from '../utils/api';
+import { brandsAPI, dealsAPI, goalsAPI, categoriesAPI, productsAPI, statsAPI } from '../utils/api';
 import { 
   ArrowLeft, 
   ArrowRight, 
@@ -35,6 +34,10 @@ const Home: React.FC<HomeProps> = ({ onNavigate }) => {
   const [loadingBrands, setLoadingBrands] = useState(true);
   const [activeDeal, setActiveDeal] = useState<any>(null);
   const [goals, setGoals] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
+  const [stats, setStats] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   // Fetch brands from database
   useEffect(() => {
@@ -167,6 +170,93 @@ const Home: React.FC<HomeProps> = ({ onNavigate }) => {
     };
 
     fetchGoals();
+  }, []);
+
+  // Fetch categories from database
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const response = await categoriesAPI.getAllCategories();
+        if (response.success && response.data?.categories) {
+          const formattedCategories = response.data.categories.map((cat: any) => {
+            let imageUrl = cat.image_url || null;
+            if (imageUrl && !imageUrl.startsWith('http') && imageUrl.startsWith('/')) {
+              imageUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${imageUrl}`;
+            }
+            return {
+              ...cat,
+              nameAr: cat.name,
+              nameEn: cat.name_en || cat.name,
+              image: imageUrl,
+              slug: cat.slug || `category-${cat.id}`
+            };
+          });
+          setCategories(formattedCategories);
+        }
+      } catch (err) {
+        console.error('Failed to fetch categories:', err);
+        setCategories([]);
+      }
+    };
+
+    fetchCategories();
+  }, []);
+
+  // Fetch products from database
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const response = await productsAPI.getAllProducts({ limit: 20 });
+        if (response.success && response.data?.products) {
+          const formattedProducts = response.data.products.map((product: any) => {
+            // Format product images
+            let mainImage = product.main_image || null;
+            if (mainImage && !mainImage.startsWith('http') && mainImage.startsWith('/')) {
+              mainImage = `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${mainImage}`;
+            }
+            
+            return {
+              ...product,
+              nameAr: product.name_ar || product.name,
+              nameEn: product.name_en || product.name,
+              image: mainImage,
+              category: product.category_slug || product.category,
+              oldPrice: product.old_price || null,
+              rating: product.average_rating || 0,
+              reviewsCount: product.reviews_count || 0,
+              weight: product.weight || '',
+              flavor: product.flavors ? product.flavors.split(',') : [],
+              stock: product.stock || 0
+            };
+          });
+          setProducts(formattedProducts);
+        }
+      } catch (err) {
+        console.error('Failed to fetch products:', err);
+        setProducts([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProducts();
+  }, []);
+
+  // Fetch stats from database
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await statsAPI.getAllStats(true); // Get only active stats
+        if (response.success && response.data?.stats) {
+          setStats(response.data.stats);
+        }
+      } catch (err) {
+        console.error('Failed to fetch stats:', err);
+        setStats([]);
+      }
+    };
+
+    fetchStats();
   }, []);
 
   const getLogoUrl = (brand: any) => {
@@ -372,8 +462,8 @@ const Home: React.FC<HomeProps> = ({ onNavigate }) => {
       )}
 
       {/* Categories Sections */}
-      {categories.slice(0, 4).map((category) => {
-        const categoryProducts = products.filter(p => p.category === category.slug);
+      {!loading && categories.slice(0, 4).map((category) => {
+        const categoryProducts = products.filter(p => p.category === category.slug || p.category_id === category.id);
         if (categoryProducts.length === 0) return null;
 
         return (
@@ -408,22 +498,36 @@ const Home: React.FC<HomeProps> = ({ onNavigate }) => {
       })}
 
       {/* Stats Section */}
-      <section className="container mx-auto px-4">
-        <div className="bg-accent/40 rounded-[4rem] p-12 lg:p-20 grid grid-cols-2 lg:grid-cols-4 gap-12 text-center border border-white shadow-inner">
-          {[
-            { label: t('happyCustomers'), value: '50k+', icon: <Users className="text-primary mx-auto mb-4" size={32} /> },
-            { label: t('originalProducts'), value: '200+', icon: <ShieldCheck className="text-primary mx-auto mb-4" size={32} /> },
-            { label: t('yearsExperience'), value: '15+', icon: <Trophy className="text-primary mx-auto mb-4" size={32} /> },
-            { label: t('featured'), value: '4.9/5', icon: <Flame className="text-primary mx-auto mb-4" size={32} /> },
-          ].map((stat, i) => (
-            <div key={i} className="space-y-2 group">
-              <div className="transform group-hover:scale-110 transition-transform duration-300">{stat.icon}</div>
-              <h3 className="text-4xl lg:text-5xl font-black italic text-secondary">{stat.value}</h3>
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">{stat.label}</p>
-            </div>
-          ))}
-        </div>
-      </section>
+      {stats.length > 0 && (
+        <section className="container mx-auto px-4">
+          <div className="bg-accent/40 rounded-[4rem] p-12 lg:p-20 grid grid-cols-2 lg:grid-cols-4 gap-12 text-center border border-white shadow-inner">
+            {stats.slice(0, 4).map((stat: any, i: number) => {
+              // Map icon names to components
+              const iconMap: { [key: string]: any } = {
+                'users': Users,
+                'shield': ShieldCheck,
+                'trophy': Trophy,
+                'flame': Flame,
+                'star': Star,
+                'truck': Truck,
+                'timer': Timer
+              };
+              const IconComponent = iconMap[stat.icon_name] || Trophy;
+              const statLabel = language === 'ar' ? stat.stat_label_ar : stat.stat_label_en;
+              
+              return (
+                <div key={stat.id || i} className="space-y-2 group">
+                  <div className="transform group-hover:scale-110 transition-transform duration-300">
+                    <IconComponent className="text-primary mx-auto mb-4" size={32} />
+                  </div>
+                  <h3 className="text-4xl lg:text-5xl font-black italic text-secondary">{stat.stat_value}</h3>
+                  <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">{statLabel}</p>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       {/* Shop By Goal */}
       {goals.length > 0 && (

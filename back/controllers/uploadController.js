@@ -156,3 +156,33 @@ export const uploadDealImage = async (req, res) => {
     });
   }
 };
+
+// Upload logo image
+export const uploadLogoImage = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'لم يتم اختيار صورة'
+      });
+    }
+
+    // Return the file URL
+    const fileUrl = `/uploads/logo/${req.file.filename}`;
+    
+    res.json({
+      success: true,
+      message: 'تم رفع اللوجو بنجاح',
+      data: {
+        url: fileUrl,
+        filename: req.file.filename
+      }
+    });
+  } catch (error) {
+    console.error('Upload error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'حدث خطأ أثناء رفع اللوجو'
+    });
+  }
+};

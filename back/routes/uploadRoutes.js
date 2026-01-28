@@ -4,14 +4,16 @@ import {
   uploadProductImage as uploadProductMiddleware,
   uploadProductImages as uploadProductImagesMiddleware,
   uploadBrandImage as uploadBrandImageMiddleware,
-  uploadDealImage as uploadDealImageMiddleware
+  uploadDealImage as uploadDealImageMiddleware,
+  uploadLogoImage as uploadLogoImageMiddleware
 } from '../middleware/upload.js';
 import { 
   uploadCategoryImage, 
   uploadProductImage,
   uploadProductImages,
   uploadBrandImage,
-  uploadDealImage
+  uploadDealImage,
+  uploadLogoImage
 } from '../controllers/uploadController.js';
 import { authenticateToken } from '../middleware/auth.js';
 import { requireAdmin } from '../middleware/roleCheck.js';
@@ -82,5 +84,18 @@ router.post('/deal', authenticateToken, requireAdmin, (req, res, next) => {
     next();
   });
 }, uploadDealImage);
+
+// Upload logo image (Admin only)
+router.post('/logo', authenticateToken, requireAdmin, (req, res, next) => {
+  uploadLogoImageMiddleware(req, res, (err) => {
+    if (err) {
+      return res.status(400).json({
+        success: false,
+        message: err.message || 'حدث خطأ أثناء رفع اللوجو'
+      });
+    }
+    next();
+  });
+}, uploadLogoImage);
 
 export default router;

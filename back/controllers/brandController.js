@@ -4,6 +4,8 @@ import pool from '../config/database.js';
 export const getAllBrands = async (req, res) => {
   try {
     const { is_active } = req.query;
+    // Check if request is authenticated (has user from auth middleware or authorization header)
+    const isAuthenticated = !!req.user || !!req.headers.authorization;
     
     let query = 'SELECT * FROM brands WHERE 1=1';
     const params = [];
@@ -11,9 +13,11 @@ export const getAllBrands = async (req, res) => {
     if (is_active !== undefined) {
       query += ' AND is_active = ?';
       params.push(is_active === 'true' || is_active === '1');
-    } else {
+    } else if (!isAuthenticated) {
+      // For public routes (not authenticated), show only active brands
       query += ' AND is_active = 1';
     }
+    // For authenticated routes (admin), show all brands when is_active is not specified
     
     query += ' ORDER BY display_order ASC, created_at DESC';
     

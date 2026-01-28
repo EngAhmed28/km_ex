@@ -11,6 +11,7 @@ import AdminBrands from './AdminBrands';
 import AdminStats from './AdminStats';
 import AdminDeals from './AdminDeals';
 import AdminGoals from './AdminGoals';
+import AdminSiteSettings from './AdminSiteSettings';
 
 interface AdminDashboardProps {
   onNavigate: (page: string, params?: any) => void;
@@ -308,6 +309,16 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, initialTab 
                       >
                         {language === 'ar' ? 'الأهداف' : 'Goals'}
                       </button>
+                      <button
+                        onClick={() => setActiveTab('settings')}
+                        className={`px-6 py-3 rounded-2xl font-bold transition-all ${
+                          activeTab === 'settings'
+                            ? 'bg-primary text-white'
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        }`}
+                      >
+                        {language === 'ar' ? 'الإعدادات' : 'Settings'}
+                      </button>
                     </>
                   )}
                 </>
@@ -543,6 +554,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, initialTab 
             {activeTab === 'goals' && user.role === 'admin' && (
               <div className="-m-6">
                 <AdminGoals onNavigate={onNavigate} />
+              </div>
+            )}
+            {activeTab === 'settings' && user.role === 'admin' && (
+              <div className="-m-6">
+                <AdminSiteSettings onNavigate={onNavigate} />
               </div>
             )}
           </div>

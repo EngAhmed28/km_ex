@@ -431,3 +431,17 @@ export const goalsAPI = {
     });
   },
 };
+
+// Site Settings API functions
+export const siteSettingsAPI = {
+  getSiteSettings: async () => {
+    return apiRequest('/site-settings', { method: 'GET' });
+  },
+
+  updateSiteSettings: async (settingsData) => {
+    return apiRequest('/site-settings', {
+      method: 'PUT',
+      body: settingsData,
+    });
+  },
+};

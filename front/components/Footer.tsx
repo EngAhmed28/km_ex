@@ -1,10 +1,49 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../context/LanguageContext';
+import { siteSettingsAPI } from '../utils/api';
 import { Facebook, Instagram, Twitter, Youtube, MapPin, Phone, Mail } from 'lucide-react';
 
 const Footer: React.FC = () => {
   const { t, language } = useLanguage();
+  const [settings, setSettings] = useState<any>(null);
+
+  useEffect(() => {
+    fetchSettings();
+  }, []);
+
+  const fetchSettings = async () => {
+    try {
+      const response = await siteSettingsAPI.getSiteSettings();
+      if (response.success && response.data?.settings) {
+        setSettings(response.data.settings);
+      }
+    } catch (err) {
+      console.error('Failed to fetch site settings:', err);
+    }
+  };
+
+  if (!settings) {
+    // Fallback to default values while loading
+    return (
+      <footer className="bg-secondary text-white pt-16 pb-8">
+        <div className="container mx-auto px-4">
+          <div className="text-center text-gray-400">{t('loading')}</div>
+        </div>
+      </footer>
+    );
+  }
+
+  const siteName = language === 'ar' ? settings.site_name_ar : settings.site_name_en;
+  const footerDescription = language === 'ar' ? settings.footer_description_ar : settings.footer_description_en;
+  const address = language === 'ar' ? settings.address_ar : settings.address_en;
+
+  const socialLinks = [
+    { Icon: Facebook, url: settings.facebook_url },
+    { Icon: Instagram, url: settings.instagram_url },
+    { Icon: Twitter, url: settings.twitter_url },
+    { Icon: Youtube, url: settings.youtube_url }
+  ].filter(link => link.url);
 
   return (
     <footer className="bg-secondary text-white pt-16 pb-8">
@@ -14,62 +53,106 @@ const Footer: React.FC = () => {
           {/* Brand Info */}
           <div>
             <div className="flex items-center gap-2 mb-6">
-              <div className="bg-primary text-white p-2 rounded-lg font-black text-2xl">KM</div>
-              <div>
-                <p className="font-extrabold text-xl leading-none">KING OF</p>
-                <p className="font-extrabold text-xl leading-none text-primary">MUSCLES</p>
-              </div>
+              {settings.logo_url ? (
+                <img 
+                  src={`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${settings.logo_url}`} 
+                  alt={siteName}
+                  className="h-12 object-contain"
+                  onError={(e) => {
+                    // Fallback to text logo if image fails
+                    e.currentTarget.style.display = 'none';
+                  }}
+                />
+              ) : (
+                <>
+                  <div className="bg-primary text-white p-2 rounded-lg font-black text-2xl">KM</div>
+                  <div>
+                    <p className="font-extrabold text-xl leading-none">{siteName.split(' ').slice(0, -1).join(' ')}</p>
+                    <p className="font-extrabold text-xl leading-none text-primary">{siteName.split(' ').slice(-1).join(' ')}</p>
+                  </div>
+                </>
+              )}
             </div>
             <p className="text-gray-400 leading-relaxed text-sm mb-6">
-              {t('footerAbout')}
+              {footerDescription || t('footerAbout')}
             </p>
-            <div className="flex gap-4">
-              {[Facebook, Instagram, Twitter, Youtube].map((Icon, i) => (
-                <a key={i} href="#" className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center hover:bg-primary transition-all">
-                  <Icon size={18} />
-                </a>
-              ))}
-            </div>
+            {socialLinks.length > 0 && (
+              <div className="flex gap-4">
+                {socialLinks.map(({ Icon, url }, i) => (
+                  <a 
+                    key={i} 
+                    href={url} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center hover:bg-primary transition-all"
+                  >
+                    <Icon size={18} />
+                  </a>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Quick Links */}
-          <div>
-            <h3 className="text-lg font-bold mb-6 border-b border-primary/30 pb-2 inline-block">{t('shop')}</h3>
-            <ul className="space-y-4 text-gray-400 text-sm">
-              <li className="hover:text-primary transition-colors cursor-pointer">{t('bestSellers')}</li>
-              <li className="hover:text-primary transition-colors cursor-pointer">{t('newArrivals')}</li>
-              <li className="hover:text-primary transition-colors cursor-pointer">{t('categories')}</li>
-              <li className="hover:text-primary transition-colors cursor-pointer">{t('specialOffers')}</li>
-            </ul>
-          </div>
+          {settings.shop_links && settings.shop_links.length > 0 && (
+            <div>
+              <h3 className="text-lg font-bold mb-6 border-b border-primary/30 pb-2 inline-block">{t('shop')}</h3>
+              <ul className="space-y-4 text-gray-400 text-sm">
+                {settings.shop_links.map((link: any, index: number) => (
+                  <li key={index}>
+                    <a 
+                      href={link.url || '#'} 
+                      className="hover:text-primary transition-colors cursor-pointer"
+                    >
+                      {language === 'ar' ? link.label_ar : link.label_en}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           {/* Support */}
-          <div>
-            <h3 className="text-lg font-bold mb-6 border-b border-primary/30 pb-2 inline-block">{t('support')}</h3>
-            <ul className="space-y-4 text-gray-400 text-sm">
-              <li className="hover:text-primary transition-colors cursor-pointer">{t('faqs')}</li>
-              <li className="hover:text-primary transition-colors cursor-pointer">{t('returnPolicy')}</li>
-              <li className="hover:text-primary transition-colors cursor-pointer">{t('shippingDelivery')}</li>
-              <li className="hover:text-primary transition-colors cursor-pointer">{t('contactUs')}</li>
-            </ul>
-          </div>
+          {settings.support_links && settings.support_links.length > 0 && (
+            <div>
+              <h3 className="text-lg font-bold mb-6 border-b border-primary/30 pb-2 inline-block">{t('support')}</h3>
+              <ul className="space-y-4 text-gray-400 text-sm">
+                {settings.support_links.map((link: any, index: number) => (
+                  <li key={index}>
+                    <a 
+                      href={link.url || '#'} 
+                      className="hover:text-primary transition-colors cursor-pointer"
+                    >
+                      {language === 'ar' ? link.label_ar : link.label_en}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           {/* Contact */}
           <div>
             <h3 className="text-lg font-bold mb-6 border-b border-primary/30 pb-2 inline-block">{t('connectWithUs')}</h3>
             <ul className="space-y-4 text-gray-400 text-sm">
-              <li className="flex items-start gap-3">
-                <MapPin className="text-primary mt-1 shrink-0" size={18} />
-                <span>{t('address')}</span>
-              </li>
-              <li className="flex items-center gap-3">
-                <Phone className="text-primary shrink-0" size={18} />
-                <span dir="ltr">+966 50 123 4567</span>
-              </li>
-              <li className="flex items-center gap-3">
-                <Mail className="text-primary shrink-0" size={18} />
-                <span>info@kingofmuscles.com</span>
-              </li>
+              {address && (
+                <li className="flex items-start gap-3">
+                  <MapPin className="text-primary mt-1 shrink-0" size={18} />
+                  <span>{address}</span>
+                </li>
+              )}
+              {settings.phone && (
+                <li className="flex items-center gap-3">
+                  <Phone className="text-primary shrink-0" size={18} />
+                  <span dir="ltr">{settings.phone}</span>
+                </li>
+              )}
+              {settings.email && (
+                <li className="flex items-center gap-3">
+                  <Mail className="text-primary shrink-0" size={18} />
+                  <span>{settings.email}</span>
+                </li>
+              )}
             </ul>
           </div>
         </div>

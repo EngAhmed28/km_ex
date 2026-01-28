@@ -15,6 +15,7 @@ import brandRoutes from './routes/brandRoutes.js';
 import statsRoutes from './routes/statsRoutes.js';
 import dealRoutes from './routes/dealRoutes.js';
 import goalRoutes from './routes/goalRoutes.js';
+import siteSettingsRoutes from './routes/siteSettingsRoutes.js';
 import testRoutes from './routes/testRoutes.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -72,6 +73,7 @@ app.use('/api/brands', brandRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api/deals', dealRoutes);
 app.use('/api/goals', goalRoutes);
+app.use('/api/site-settings', siteSettingsRoutes);
 
 // 404 handler
 app.use((req, res) => {
