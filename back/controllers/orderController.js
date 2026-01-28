@@ -252,15 +252,55 @@ export const createOrder = async (req, res) => {
 export const getAllOrders = async (req, res) => {
   try {
     const { status, search, page = 1, limit = 20, include_stats } = req.query;
-    const offset = (parseInt(page) - 1) * parseInt(limit);
+    const pageNum = Math.max(parseInt(String(page), 10) || 1, 1);
+    const limitNum = Math.max(parseInt(String(limit), 10) || 20, 1);
+    const offset = Math.max((pageNum - 1) * limitNum, 0);
     
+    // Check which columns exist in orders table (once at the beginning)
+    let orderColumns = [
+      'o.id', 'o.user_id', 'o.total_amount', 'o.status', 
+      'o.created_at', 'o.updated_at', 'o.shipping_address', 
+      'o.phone', 'o.notes'
+    ];
+    
+    const columnExists = {
+      phone: true, // Assume exists (from db-update.sql)
+      guest_name: false,
+      guest_email: false,
+      payment_method: false,
+      governorate: false,
+      city: false
+    };
+    
+    // Try to check if additional columns exist
+    try {
+      const [columns] = await pool.execute(
+        `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS 
+         WHERE TABLE_SCHEMA = DATABASE() 
+         AND TABLE_NAME = 'orders'`
+      );
+      const existingColumns = columns.map(col => col.COLUMN_NAME);
+      
+      // Check and add optional columns if they exist
+      ['guest_name', 'guest_email', 'payment_method', 'governorate', 'city'].forEach(col => {
+        if (existingColumns.includes(col)) {
+          columnExists[col] = true;
+          orderColumns.push(`o.${col}`);
+        }
+      });
+    } catch (e) {
+      // If check fails, use basic columns only
+      console.warn('Could not check order columns, using defaults:', e.message);
+    }
+    
+    // Build query with explicit columns
     let query = `
       SELECT 
-        o.*,
+        ${orderColumns.join(', ')},
         u.name as user_name,
         u.email as user_email,
         COUNT(oi.id) as items_count,
-        SUM(oi.quantity * oi.price) as calculated_total
+        COALESCE(SUM(oi.quantity * oi.price), 0) as calculated_total
       FROM orders o
       LEFT JOIN users u ON o.user_id = u.id
       LEFT JOIN order_items oi ON o.id = oi.order_id
@@ -275,15 +315,24 @@ export const getAllOrders = async (req, res) => {
       params.push(status);
     }
     
-    // Search by order ID, user name, email, or phone
+    // Search by order ID, user name, email, or phone (using column existence info)
     if (search) {
-      query += ' AND (o.id LIKE ? OR u.name LIKE ? OR u.email LIKE ? OR o.phone LIKE ? OR o.guest_name LIKE ? OR o.guest_email LIKE ?)';
-      const searchTerm = `%${search}%`;
-      params.push(searchTerm, searchTerm, searchTerm, searchTerm, searchTerm, searchTerm);
+      const searchConditions = ['o.id LIKE ?', 'u.name LIKE ?', 'u.email LIKE ?'];
+      
+      // Add columns if they exist (using the columnExists object)
+      if (columnExists.phone) searchConditions.push('o.phone LIKE ?');
+      if (columnExists.guest_name) searchConditions.push('o.guest_name LIKE ?');
+      if (columnExists.guest_email) searchConditions.push('o.guest_email LIKE ?');
+      
+      if (searchConditions.length > 0) {
+        query += ' AND (' + searchConditions.join(' OR ') + ')';
+        const searchTerm = `%${search}%`;
+        searchConditions.forEach(() => params.push(searchTerm));
+      }
     }
     
-    query += ' GROUP BY o.id ORDER BY o.created_at DESC LIMIT ? OFFSET ?';
-    params.push(parseInt(limit), offset);
+    // Use string interpolation for LIMIT and OFFSET to avoid parameter binding issues
+    query += ` GROUP BY o.id ORDER BY o.created_at DESC LIMIT ${limitNum} OFFSET ${offset}`;
     
     const [orders] = await pool.execute(query, params);
     
@@ -302,9 +351,18 @@ export const getAllOrders = async (req, res) => {
     }
     
     if (search) {
-      countQuery += ' AND (o.id LIKE ? OR u.name LIKE ? OR u.email LIKE ? OR o.phone LIKE ? OR o.guest_name LIKE ? OR o.guest_email LIKE ?)';
-      const searchTerm = `%${search}%`;
-      countParams.push(searchTerm, searchTerm, searchTerm, searchTerm, searchTerm, searchTerm);
+      const searchConditions = ['o.id LIKE ?', 'u.name LIKE ?', 'u.email LIKE ?'];
+      
+      // Add columns if they exist (using the columnExists object)
+      if (columnExists.phone) searchConditions.push('o.phone LIKE ?');
+      if (columnExists.guest_name) searchConditions.push('o.guest_name LIKE ?');
+      if (columnExists.guest_email) searchConditions.push('o.guest_email LIKE ?');
+      
+      if (searchConditions.length > 0) {
+        countQuery += ' AND (' + searchConditions.join(' OR ') + ')';
+        const searchTerm = `%${search}%`;
+        searchConditions.forEach(() => countParams.push(searchTerm));
+      }
     }
     
     const [countResult] = await pool.execute(countQuery, countParams);
@@ -350,15 +408,23 @@ export const getAllOrders = async (req, res) => {
          ORDER BY date ASC`
       );
       
-      // Get payment method distribution
-      const [paymentMethods] = await pool.execute(
-        `SELECT 
-          payment_method,
-          COUNT(*) as count
-         FROM orders 
-         WHERE payment_method IS NOT NULL
-         GROUP BY payment_method`
-      );
+      // Get payment method distribution (only if column exists)
+      let paymentMethods = [];
+      if (columnExists.payment_method) {
+        try {
+          const [result] = await pool.execute(
+            `SELECT 
+              payment_method,
+              COUNT(*) as count
+             FROM orders 
+             WHERE payment_method IS NOT NULL
+             GROUP BY payment_method`
+          );
+          paymentMethods = result;
+        } catch (e) {
+          console.warn('Could not fetch payment methods:', e.message);
+        }
+      }
       
       responseData.stats = {
         statusCounts: statusCounts.reduce((acc, item) => {

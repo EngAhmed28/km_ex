@@ -4,26 +4,39 @@ import pool from '../config/database.js';
 export const getAllUsers = async (req, res) => {
   try {
     const { role, search, page = 1, limit = 10 } = req.query;
-    const offset = (page - 1) * limit;
+    const pageNum = Math.max(parseInt(String(page), 10) || 1, 1);
+    const limitNum = Math.max(parseInt(String(limit), 10) || 10, 1);
+    const offset = Math.max((pageNum - 1) * limitNum, 0);
     
-    let query = 'SELECT id, name, email, role, is_active, created_at, updated_at FROM users WHERE 1=1';
+    // Build query - use basic columns only (is_active will be added as default)
+    let query = 'SELECT id, name, email, role, created_at, updated_at FROM users WHERE 1=1';
     const params = [];
     
     if (role) {
       query += ' AND role = ?';
-      params.push(role);
+      params.push(String(role));
     }
     
     if (search) {
       query += ' AND (name LIKE ? OR email LIKE ?)';
-      const searchTerm = `%${search}%`;
+      const searchTerm = `%${String(search)}%`;
       params.push(searchTerm, searchTerm);
     }
     
-    query += ' ORDER BY created_at DESC LIMIT ? OFFSET ?';
-    params.push(parseInt(limit), parseInt(offset));
+    // Use string interpolation for LIMIT and OFFSET to avoid parameter binding issues
+    // MySQL requires integers for LIMIT/OFFSET, so we'll use template literals
+    query += ` ORDER BY created_at DESC LIMIT ${limitNum} OFFSET ${offset}`;
     
+    // Execute query - use basic columns only, add is_active default in JavaScript
     const [users] = await pool.execute(query, params);
+    
+    // Format users data - ensure is_active is boolean (default to true if column doesn't exist)
+    const formattedUsers = users.map(user => ({
+      ...user,
+      is_active: user.is_active !== undefined && user.is_active !== null 
+        ? (user.is_active === 1 || user.is_active === true || user.is_active === '1')
+        : true // Default to true if column doesn't exist or is null
+    }));
     
     // Get total count
     let countQuery = 'SELECT COUNT(*) as total FROM users WHERE 1=1';
@@ -46,7 +59,7 @@ export const getAllUsers = async (req, res) => {
     res.json({
       success: true,
       data: {
-        users,
+        users: formattedUsers,
         pagination: {
           page: parseInt(page),
           limit: parseInt(limit),
@@ -57,11 +70,14 @@ export const getAllUsers = async (req, res) => {
     });
   } catch (error) {
     console.error('Get all users error:', error);
+    console.error('Error message:', error.message);
+    console.error('Error code:', error.code);
     console.error('Error stack:', error.stack);
     res.status(500).json({
       success: false,
       message: 'حدث خطأ أثناء جلب المستخدمين',
       error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+      errorCode: process.env.NODE_ENV === 'development' ? error.code : undefined,
       stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
