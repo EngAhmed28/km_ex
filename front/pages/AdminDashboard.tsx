@@ -279,49 +279,53 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, initialTab 
                       {t('orderManagement')}
                     </button>
                   )}
-                  {user.role === 'admin' && (
-                    <>
-                      <button
-                        onClick={() => setActiveTab('brands')}
-                        className={`px-6 py-3 rounded-2xl font-bold transition-all ${
-                          activeTab === 'brands'
-                            ? 'bg-primary text-white'
-                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                        }`}
-                      >
-                        {language === 'ar' ? 'البراندات' : 'Brands'}
-                      </button>
-                      <button
-                        onClick={() => setActiveTab('stats')}
-                        className={`px-6 py-3 rounded-2xl font-bold transition-all ${
-                          activeTab === 'stats'
-                            ? 'bg-primary text-white'
-                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                        }`}
-                      >
-                        {language === 'ar' ? 'الإحصائيات' : 'Statistics'}
-                      </button>
-                      <button
-                        onClick={() => setActiveTab('deals')}
-                        className={`px-6 py-3 rounded-2xl font-bold transition-all ${
-                          activeTab === 'deals'
-                            ? 'bg-primary text-white'
-                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                        }`}
-                      >
-                        {language === 'ar' ? 'صفقات اليوم' : 'Deals of Day'}
-                      </button>
-                      <button
-                        onClick={() => setActiveTab('goals')}
-                        className={`px-6 py-3 rounded-2xl font-bold transition-all ${
-                          activeTab === 'goals'
-                            ? 'bg-primary text-white'
-                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                        }`}
-                      >
-                        {language === 'ar' ? 'الأهداف' : 'Goals'}
-                      </button>
-                    </>
+                  {hasPermission('brands') && (
+                    <button
+                      onClick={() => setActiveTab('brands')}
+                      className={`px-6 py-3 rounded-2xl font-bold transition-all ${
+                        activeTab === 'brands'
+                          ? 'bg-primary text-white'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      }`}
+                    >
+                      {language === 'ar' ? 'البراندات' : 'Brands'}
+                    </button>
+                  )}
+                  {hasPermission('stats') && (
+                    <button
+                      onClick={() => setActiveTab('stats')}
+                      className={`px-6 py-3 rounded-2xl font-bold transition-all ${
+                        activeTab === 'stats'
+                          ? 'bg-primary text-white'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      }`}
+                    >
+                      {language === 'ar' ? 'الإحصائيات' : 'Statistics'}
+                    </button>
+                  )}
+                  {hasPermission('deals') && (
+                    <button
+                      onClick={() => setActiveTab('deals')}
+                      className={`px-6 py-3 rounded-2xl font-bold transition-all ${
+                        activeTab === 'deals'
+                          ? 'bg-primary text-white'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      }`}
+                    >
+                      {language === 'ar' ? 'صفقات اليوم' : 'Deals of Day'}
+                    </button>
+                  )}
+                  {hasPermission('goals') && (
+                    <button
+                      onClick={() => setActiveTab('goals')}
+                      className={`px-6 py-3 rounded-2xl font-bold transition-all ${
+                        activeTab === 'goals'
+                          ? 'bg-primary text-white'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      }`}
+                    >
+                      {language === 'ar' ? 'الأهداف' : 'Goals'}
+                    </button>
                   )}
                 </>
               );
@@ -538,26 +542,42 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, initialTab 
                 <AdminOrders onNavigate={onNavigate} />
               </div>
             )}
-            {activeTab === 'brands' && user.role === 'admin' && (
-              <div className="-m-6">
-                <AdminBrands onNavigate={onNavigate} />
-              </div>
-            )}
-            {activeTab === 'stats' && user.role === 'admin' && (
-              <div className="-m-6">
-                <AdminStats onNavigate={onNavigate} />
-              </div>
-            )}
-            {activeTab === 'deals' && user.role === 'admin' && (
-              <div className="-m-6">
-                <AdminDeals onNavigate={onNavigate} />
-              </div>
-            )}
-            {activeTab === 'goals' && user.role === 'admin' && (
-              <div className="-m-6">
-                <AdminGoals onNavigate={onNavigate} />
-              </div>
-            )}
+            {(() => {
+            const hasPermission = (permissionType: string) => {
+              if (user.role === 'admin') return true;
+              if (!dashboardData?.permissions) return false;
+              const perm = dashboardData.permissions.find((p: any) => 
+                p.permission_type === permissionType && 
+                (p.can_view === true || p.can_view === 1 || p.can_view === '1')
+              );
+              return !!perm;
+            };
+            
+            return (
+              <>
+                {activeTab === 'brands' && hasPermission('brands') && (
+                  <div className="-m-6">
+                    <AdminBrands onNavigate={onNavigate} />
+                  </div>
+                )}
+                {activeTab === 'stats' && hasPermission('stats') && (
+                  <div className="-m-6">
+                    <AdminStats onNavigate={onNavigate} />
+                  </div>
+                )}
+                {activeTab === 'deals' && hasPermission('deals') && (
+                  <div className="-m-6">
+                    <AdminDeals onNavigate={onNavigate} />
+                  </div>
+                )}
+                {activeTab === 'goals' && hasPermission('goals') && (
+                  <div className="-m-6">
+                    <AdminGoals onNavigate={onNavigate} />
+                  </div>
+                )}
+              </>
+            );
+          })()}
             {activeTab === 'settings' && user.role === 'admin' && (
               <div className="-m-6">
                 <AdminSiteSettings onNavigate={onNavigate} />

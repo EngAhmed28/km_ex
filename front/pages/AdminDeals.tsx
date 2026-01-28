@@ -91,7 +91,7 @@ const AdminDeals: React.FC<AdminDealsProps> = ({ onNavigate }) => {
         const response = await dashboardAPI.getDashboard();
         if (response.success && response.data?.permissions) {
           const perm = response.data.permissions.find((p: any) =>
-            p.permission_type === 'products' && (p.can_view === true || p.can_view === 1 || p.can_view === '1')
+            p.permission_type === 'deals' && (p.can_view === true || p.can_view === 1 || p.can_view === '1')
           );
           if (perm) {
             setHasPermission(true);

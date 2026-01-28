@@ -1,6 +1,6 @@
 import express from 'express';
 import { getAllUsers, getUserById, updateUserRole, updateUser, toggleUserStatus, deleteUser } from '../controllers/adminController.js';
-import { setEmployeePermissions, getAllEmployees } from '../controllers/adminEmployeeController.js';
+import { setEmployeePermissions, getAllEmployees, getEmployeePermissions } from '../controllers/adminEmployeeController.js';
 import { getCustomerDiscount, setCustomerDiscount, deleteCustomerDiscount, getAllCustomerDiscounts } from '../controllers/customerDiscountController.js';
 import { requireAdmin, requireAdminOrPermission } from '../middleware/roleCheck.js';
 import { authenticateToken } from '../middleware/auth.js';
@@ -40,6 +40,10 @@ router.delete('/users/:id', [
 
 // Employee management - admin only
 router.get('/employees', requireAdmin, getAllEmployees);
+router.get('/employees/:employeeId/permissions', [
+  param('employeeId').isInt().withMessage('معرف الموظف غير صحيح'),
+  handleValidationErrors
+], requireAdmin, getEmployeePermissions);
 router.put('/employees/:employeeId/permissions', [
   param('employeeId').isInt().withMessage('معرف الموظف غير صحيح'),
   body('permissions').isArray().withMessage('الصلاحيات يجب أن تكون مصفوفة'),

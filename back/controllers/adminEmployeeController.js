@@ -1,10 +1,58 @@
 import pool from '../config/database.js';
 
+// Get employee permissions (Admin only)
+export const getEmployeePermissions = async (req, res) => {
+  try {
+    const { employeeId } = req.params;
+    
+    // Verify employee exists and is actually an employee
+    const [users] = await pool.execute(
+      'SELECT role FROM users WHERE id = ?',
+      [employeeId]
+    );
+    
+    if (users.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'المستخدم غير موجود'
+      });
+    }
+    
+    if (users[0].role !== 'employee') {
+      return res.status(400).json({
+        success: false,
+        message: 'المستخدم ليس موظفاً'
+      });
+    }
+    
+    const [permissions] = await pool.execute(
+      'SELECT * FROM employee_permissions WHERE employee_id = ?',
+      [employeeId]
+    );
+    
+    res.json({
+      success: true,
+      data: {
+        permissions
+      }
+    });
+  } catch (error) {
+    console.error('Get employee permissions error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'حدث خطأ أثناء جلب صلاحيات الموظف'
+    });
+  }
+};
+
 // Set employee permissions (Admin only)
 export const setEmployeePermissions = async (req, res) => {
   try {
     const { employeeId } = req.params;
     const { permissions } = req.body;
+    
+    console.log('Received permissions:', permissions);
+    console.log('Employee ID:', employeeId);
     
     // Verify employee exists and is actually an employee
     const [users] = await pool.execute(
@@ -34,8 +82,10 @@ export const setEmployeePermissions = async (req, res) => {
     
     // Insert new permissions - only save permissions that have at least can_view = true
     for (const perm of permissions) {
+      console.log('Processing permission:', perm);
       // Only save if can_view is true (employee must have view permission to have any permissions)
       if (perm.can_view === true) {
+        console.log('Saving permission:', perm.permission_type);
         await pool.execute(
           `INSERT INTO employee_permissions 
            (employee_id, permission_type, can_view, can_create, can_edit, can_delete) 
@@ -49,6 +99,8 @@ export const setEmployeePermissions = async (req, res) => {
             perm.can_delete || false
           ]
         );
+      } else {
+        console.log('Skipping permission (can_view is false):', perm.permission_type);
       }
     }
     

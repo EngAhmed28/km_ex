@@ -299,7 +299,7 @@ const AdminUsers: React.FC<AdminUsersProps> = ({ onNavigate }) => {
       const response = await adminAPI.getEmployeePermissions(user.id.toString());
       if (response.success && response.data && response.data.permissions) {
         // Initialize permissions for all sections
-        const allSections = ['users', 'categories', 'products', 'orders'];
+        const allSections = ['users', 'categories', 'products', 'orders', 'brands', 'stats', 'deals', 'goals'];
         const existingPerms = response.data.permissions;
         
         const perms = allSections.map(section => {
@@ -316,7 +316,7 @@ const AdminUsers: React.FC<AdminUsersProps> = ({ onNavigate }) => {
         setPermissions(perms);
       } else {
         // Initialize empty permissions
-        const allSections = ['users', 'categories', 'products', 'orders'];
+        const allSections = ['users', 'categories', 'products', 'orders', 'brands', 'stats', 'deals', 'goals'];
         setPermissions(allSections.map(section => ({
           permission_type: section,
           can_view: false,
@@ -336,13 +336,17 @@ const AdminUsers: React.FC<AdminUsersProps> = ({ onNavigate }) => {
     if (!selectedEmployee) return;
     
     try {
+      console.log('Saving permissions:', permissions);
+      console.log('Selected employee:', selectedEmployee);
       const response = await adminAPI.setEmployeePermissions(selectedEmployee.id, permissions);
+      console.log('API response:', response);
       if (response.success) {
         setShowPermissionsModal(false);
         setSelectedEmployee(null);
         alert(language === 'ar' ? 'تم حفظ الصلاحيات بنجاح' : 'Permissions saved successfully');
       }
     } catch (err: any) {
+      console.error('Save permissions error:', err);
       alert(err.message || (language === 'ar' ? 'فشل حفظ الصلاحيات' : 'Failed to save permissions'));
     }
   };
@@ -461,7 +465,11 @@ const AdminUsers: React.FC<AdminUsersProps> = ({ onNavigate }) => {
       users: { ar: 'إدارة المستخدمين', en: 'User Management' },
       categories: { ar: 'إدارة الأقسام', en: 'Category Management' },
       products: { ar: 'إدارة المنتجات', en: 'Product Management' },
-      orders: { ar: 'إدارة الطلبات', en: 'Order Management' }
+      orders: { ar: 'إدارة الطلبات', en: 'Order Management' },
+      brands: { ar: 'البراندات', en: 'Brands' },
+      stats: { ar: 'الإحصائيات', en: 'Statistics' },
+      deals: { ar: 'صفقات اليوم', en: 'Deals of Day' },
+      goals: { ar: 'الأهداف', en: 'Goals' }
     };
     return labels[section] ? labels[section][language] : section;
   };
