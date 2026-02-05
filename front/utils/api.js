@@ -170,6 +170,8 @@ export const productsAPI = {
     if (params.search) queryParams.append('search', params.search);
     if (params.min_price) queryParams.append('min_price', params.min_price);
     if (params.max_price) queryParams.append('max_price', params.max_price);
+    if (params.goal_id) queryParams.append('goal_id', params.goal_id);
+    if (params.show_all) queryParams.append('show_all', params.show_all);
     
     const queryString = queryParams.toString();
     const url = `/products${queryString ? `?${queryString}` : ''}`;
@@ -491,6 +493,17 @@ export const goalsAPI = {
   toggleGoalStatus: async (id) => {
     return apiRequest(`/goals/${id}/toggle-status`, {
       method: 'PUT',
+    });
+  },
+
+  getGoalProducts: async (id) => {
+    return apiRequest(`/goals/${id}/products`, { method: 'GET' });
+  },
+
+  updateGoalProducts: async (id, productIds) => {
+    return apiRequest(`/goals/${id}/products`, {
+      method: 'PUT',
+      body: { product_ids: productIds },
     });
   },
 };

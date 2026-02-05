@@ -14,7 +14,7 @@ const generateSlug = (text) => {
 // Get all products
 export const getAllProducts = async (req, res) => {
   try {
-    const { category, category_id, is_active, show_all, search, min_price, max_price } = req.query;
+    const { category, category_id, is_active, show_all, search, min_price, max_price, goal_id } = req.query;
     
     let query = `
       SELECT 
@@ -48,6 +48,15 @@ export const getAllProducts = async (req, res) => {
       WHERE 1=1
     `;
     const params = [];
+    
+    // Filter by goal_id (if provided, show only products linked to this goal)
+    if (goal_id) {
+      const goalIdNum = parseInt(goal_id);
+      if (!isNaN(goalIdNum)) {
+        query += ' AND p.id IN (SELECT product_id FROM goal_products WHERE goal_id = ?)';
+        params.push(goalIdNum);
+      }
+    }
     
     // Filter by active status
     if (show_all !== 'true') {
@@ -165,11 +174,18 @@ export const getAllProducts = async (req, res) => {
         image: primaryImage?.url || product.image_url || null, // Use primary image or fallback to image_url
         images: images.map(img => img.url), // All images array
         category: product.category_slug || product.category || '',
+        category_slug: product.category_slug || product.category || '',
+        category_name: product.category_name || '',
+        category_name_en: product.category_name_en || '',
         descriptionAr: product.description_ar || product.description || '',
         descriptionEn: product.description_en || product.description || '',
         rating: parseFloat(product.rating) || 0,
         reviewsCount: parseInt(product.reviews_count) || 0,
         weight: product.weight || '',
+        // Keep original fields for backward compatibility
+        name_ar: product.name_ar || product.name || '',
+        name_en: product.name_en || product.name || '',
+        name: product.name || '',
         flavor: Array.isArray(flavors) ? flavors : [],
         stock: parseInt(product.stock) || 0,
         nutrition: Array.isArray(nutrition) ? nutrition : [],

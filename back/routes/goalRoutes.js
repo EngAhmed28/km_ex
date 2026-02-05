@@ -1,5 +1,5 @@
 import express from 'express';
-import { getAllGoals, getGoalById, createGoal, updateGoal, deleteGoal, toggleGoalStatus } from '../controllers/goalController.js';
+import { getAllGoals, getGoalById, createGoal, updateGoal, deleteGoal, toggleGoalStatus, getGoalProducts, updateGoalProducts } from '../controllers/goalController.js';
 import { authenticateToken } from '../middleware/auth.js';
 import { requireAdminOrPermission } from '../middleware/roleCheck.js';
 import { body, param } from 'express-validator';
@@ -50,5 +50,19 @@ router.delete('/:id', [
   param('id').isInt().withMessage('معرف الهدف غير صحيح'),
   handleValidationErrors
 ], requireAdminOrPermission('products', 'delete'), deleteGoal);
+
+// Get products linked to a goal (public route)
+router.get('/:id/products', [
+  param('id').isInt().withMessage('معرف الهدف غير صحيح'),
+  handleValidationErrors
+], getGoalProducts);
+
+// Update products linked to a goal (admin/employee only)
+router.put('/:id/products', [
+  param('id').isInt().withMessage('معرف الهدف غير صحيح'),
+  body('product_ids').isArray().withMessage('يجب إرسال مصفوفة من معرفات المنتجات'),
+  body('product_ids.*').isInt().withMessage('معرفات المنتجات يجب أن تكون أرقاماً صحيحة'),
+  handleValidationErrors
+], requireAdminOrPermission('products', 'edit'), updateGoalProducts);
 
 export default router;

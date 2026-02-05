@@ -253,3 +253,126 @@ export const toggleGoalStatus = async (req, res) => {
     });
   }
 };
+
+// Get products linked to a goal
+export const getGoalProducts = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const [products] = await pool.execute(
+      `SELECT 
+        p.id,
+        p.name_ar,
+        p.name_en,
+        p.name,
+        p.price,
+        p.image_url,
+        p.is_active,
+        c.name as category_name,
+        c.name_en as category_name_en
+      FROM products p
+      INNER JOIN goal_products gp ON p.id = gp.product_id
+      LEFT JOIN categories c ON p.category_id = c.id
+      WHERE gp.goal_id = ?
+      ORDER BY p.name_ar ASC`,
+      [id]
+    );
+    
+    res.json({
+      success: true,
+      data: {
+        products: products.map(product => ({
+          ...product,
+          is_active: Boolean(product.is_active)
+        }))
+      }
+    });
+  } catch (error) {
+    console.error('Get goal products error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'حدث خطأ أثناء جلب المنتجات المرتبطة بالهدف'
+    });
+  }
+};
+
+// Update products linked to a goal (replace all existing links)
+export const updateGoalProducts = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { product_ids } = req.body; // Array of product IDs
+    
+    if (!Array.isArray(product_ids)) {
+      return res.status(400).json({
+        success: false,
+        message: 'يجب إرسال مصفوفة من معرفات المنتجات'
+      });
+    }
+    
+    // Check if goal exists
+    const [goals] = await pool.execute(
+      'SELECT id FROM goals WHERE id = ?',
+      [id]
+    );
+    
+    if (goals.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'الهدف غير موجود'
+      });
+    }
+    
+    // Start transaction
+    const connection = await pool.getConnection();
+    await connection.beginTransaction();
+    
+    try {
+      // Delete all existing links
+      await connection.execute(
+        'DELETE FROM goal_products WHERE goal_id = ?',
+        [id]
+      );
+      
+      // Insert new links
+      if (product_ids.length > 0) {
+        // Verify products exist
+        const placeholders = product_ids.map(() => '?').join(',');
+        const [existingProducts] = await connection.execute(
+          `SELECT id FROM products WHERE id IN (${placeholders})`,
+          product_ids
+        );
+        
+        const existingProductIds = existingProducts.map(p => p.id);
+        
+        // Insert only existing products
+        if (existingProductIds.length > 0) {
+          const insertValues = existingProductIds.map(() => '(?, ?)').join(',');
+          const insertParams = existingProductIds.flatMap(pid => [id, pid]);
+          
+          await connection.execute(
+            `INSERT INTO goal_products (goal_id, product_id) VALUES ${insertValues}`,
+            insertParams
+          );
+        }
+      }
+      
+      await connection.commit();
+      
+      res.json({
+        success: true,
+        message: 'تم تحديث المنتجات المرتبطة بالهدف بنجاح'
+      });
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
+  } catch (error) {
+    console.error('Update goal products error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'حدث خطأ أثناء تحديث المنتجات المرتبطة بالهدف'
+    });
+  }
+};

@@ -295,84 +295,19 @@ const Home: React.FC<HomeProps> = ({ onNavigate }) => {
   return (
     <div className="space-y-24 pb-24">
       
-      {/* Before/After Hero Section - Transformation Showcase */}
-      <section className="relative min-h-screen bg-secondary text-white overflow-hidden flex items-center py-20">
-        {/* Background Gradient */}
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(211,16,16,0.15),transparent_60%)]"></div>
-        <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/40"></div>
-
-        <div className="container mx-auto px-4 lg:px-6 relative z-10">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12 items-center">
+      {/* Hero Section - Clean Minimalist Design */}
+      <section className="relative bg-gray-900 text-white py-32 lg:py-40">
+        <div className="container mx-auto px-4 lg:px-6">
+          <div className="text-center space-y-6 max-w-4xl mx-auto">
+            {/* Main Title */}
+            <h1 className="text-5xl sm:text-6xl lg:text-7xl xl:text-8xl font-black uppercase leading-tight text-white">
+              {t('heroTitle')}
+            </h1>
             
-            {/* BEFORE - Left Side */}
-            <div className="relative h-[300px] sm:h-[400px] lg:h-[500px] group order-2 lg:order-1 animate-in fade-in slide-in-from-left-20 duration-1000">
-              <div className="absolute inset-0 grayscale opacity-70 group-hover:opacity-100 group-hover:grayscale-0 group-hover:scale-105 transition-all duration-700 rounded-[2.5rem] overflow-hidden shadow-2xl">
-                <img
-                  src="https://cdn.pixabay.com/photo/2024/12/01/23/12/ai-generated-9238589_1280.jpg?auto=format&fit=crop&w=800&q=80"
-                  className="w-full h-full object-cover"
-                  alt={language === 'ar' ? 'قبل' : 'Before'}
-                  onError={(e) => (e.currentTarget.src = "https://images.unsplash.com/photo-1599058917212-d750089bc07f?q=80&w=800&auto=format&fit=crop")}
-                />
-              </div>
-              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent rounded-[2.5rem] group-hover:from-black/60 transition-all"></div>
-              <span className={`absolute bottom-4 lg:bottom-6 ${language === 'ar' ? 'right-4 lg:right-6' : 'left-4 lg:left-6'} bg-white/20 backdrop-blur-md px-4 lg:px-6 py-1.5 lg:py-2 rounded-full text-[10px] lg:text-xs font-black tracking-widest border border-white/30`}>
-                {language === 'ar' ? 'قبل' : 'BEFORE'}
-              </span>
-            </div>
-
-            {/* CENTER CONTENT */}
-            <div className="text-center space-y-6 lg:space-y-8 order-1 lg:order-2 animate-in fade-in zoom-in duration-1000 delay-300">
-              <div className="inline-flex items-center gap-2 bg-primary/20 backdrop-blur-md border border-primary/30 px-4 lg:px-6 py-1.5 lg:py-2 rounded-full text-xs lg:text-sm font-black uppercase tracking-[0.2em] text-primary mb-4">
-                <Zap size={16} className="lg:w-[18px] lg:h-[18px]" fill="currentColor" /> {language === 'ar' ? 'التحول' : 'TRANSFORMATION'}
-              </div>
-              
-              <h1 className="text-4xl sm:text-5xl lg:text-7xl font-black italic uppercase leading-tight">
-                {t('heroTitle').split(' ').map((word, i) => (
-                  <span key={i} className={i === 2 ? 'text-primary block' : ''}>{word} </span>
-                ))}
-              </h1>
-
-              <p className="text-base lg:text-lg xl:text-xl text-gray-300 font-bold max-w-md mx-auto leading-relaxed px-4">
-                {language === 'ar' ? 'مش مكمل غذائي… دي نقطة التحول في مستواك' : 'Not just a supplement... This is your transformation point'}
-              </p>
-
-              <button 
-                onClick={() => onNavigate('shop')}
-                className="bg-primary hover:bg-white hover:text-primary text-white font-black px-8 lg:px-10 py-4 lg:py-5 rounded-full uppercase italic hover:scale-105 transition-all transform shadow-2xl shadow-primary/30 flex items-center gap-3 mx-auto text-sm lg:text-base"
-              >
-                {language === 'ar' ? 'ابدأ التحول' : 'Start Transformation'}
-                {language === 'ar' ? <ArrowLeft size={18} className="lg:w-5 lg:h-5" /> : <ArrowRight size={18} className="lg:w-5 lg:h-5" />}
-              </button>
-
-              {/* Stats */}
-              <div className="flex justify-center gap-6 lg:gap-8 xl:gap-12 pt-4 lg:pt-6">
-                <div className="bg-white/5 backdrop-blur-md px-4 lg:px-6 py-3 lg:py-4 rounded-2xl border border-white/10">
-                  <p className="text-2xl lg:text-3xl xl:text-4xl font-black text-primary">+30%</p>
-                  <p className="text-[9px] lg:text-[10px] tracking-widest opacity-70 mt-1">{language === 'ar' ? 'قوة' : 'STRENGTH'}</p>
-                </div>
-                <div className="bg-white/5 backdrop-blur-md px-4 lg:px-6 py-3 lg:py-4 rounded-2xl border border-white/10">
-                  <p className="text-2xl lg:text-3xl xl:text-4xl font-black text-primary">{language === 'ar' ? '8 أسابيع' : '8 WEEKS'}</p>
-                  <p className="text-[9px] lg:text-[10px] tracking-widest opacity-70 mt-1">{language === 'ar' ? 'نتائج' : 'RESULTS'}</p>
-                </div>
-              </div>
-            </div>
-
-            {/* AFTER - Right Side */}
-            <div className="relative h-[300px] sm:h-[400px] lg:h-[500px] group order-3 animate-in fade-in slide-in-from-right-20 duration-1000 delay-500">
-              <div className="absolute inset-0 rounded-[2.5rem] overflow-hidden shadow-2xl shadow-primary/20">
-                <img
-                  src="https://images.unsplash.com/photo-1605296867304-46d5465a13f1?q=80&w=800"
-                  className="w-full h-full object-cover group-hover:scale-110 group-hover:brightness-110 transition-all duration-700"
-                  alt={language === 'ar' ? 'بعد' : 'After'}
-                  onError={(e) => (e.currentTarget.src = "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?q=80&w=800&auto=format&fit=crop")}
-                />
-              </div>
-              <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent rounded-[2.5rem] group-hover:from-black/40 transition-all"></div>
-              <span className={`absolute bottom-4 lg:bottom-6 ${language === 'ar' ? 'left-4 lg:left-6' : 'right-4 lg:right-6'} bg-primary px-4 lg:px-6 py-1.5 lg:py-2 rounded-full text-[10px] lg:text-xs font-black tracking-widest shadow-xl`}>
-                {language === 'ar' ? 'بعد' : 'AFTER'}
-              </span>
-            </div>
-
+            {/* Subtitle */}
+            <p className="text-lg lg:text-xl text-gray-400 font-normal max-w-2xl mx-auto leading-relaxed">
+              {language === 'ar' ? 'مش مكمل غذائي… دي نقطة التحول في مستواك' : 'Not just a supplement... This is your transformation point'}
+            </p>
           </div>
         </div>
       </section>
@@ -552,7 +487,7 @@ const Home: React.FC<HomeProps> = ({ onNavigate }) => {
               return (
                 <div 
                   key={goal.id}
-                  onClick={() => onNavigate('shop')}
+                  onClick={() => onNavigate('shop', { goal_id: goal.id })}
                   className="group relative h-96 rounded-[3.5rem] overflow-hidden cursor-pointer shadow-xl hover:-translate-y-4 transition-all duration-500"
                 >
                   <div className={`absolute inset-0 ${goal.color_gradient} opacity-90 group-hover:opacity-100 transition-opacity`}></div>

@@ -25,6 +25,7 @@ const Shop: React.FC<ShopProps> = ({ onNavigate, initialParams }) => {
   const [maxPrice, setMaxPrice] = useState(10000); // Track max price for slider
   const [searchQuery, setSearchQuery] = useState(initialParams?.search || '');
   const [showOnlyWishlist, setShowOnlyWishlist] = useState(initialParams?.wishlist || false);
+  const [goalId, setGoalId] = useState(initialParams?.goal_id || null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -50,6 +51,22 @@ const Shop: React.FC<ShopProps> = ({ onNavigate, initialParams }) => {
     fetchCategories();
   }, []);
 
+  // Update goalId when initialParams change
+  useEffect(() => {
+    if (initialParams?.goal_id) {
+      // Ensure goal_id is a number
+      const goalIdNum = typeof initialParams.goal_id === 'string' ? parseInt(initialParams.goal_id) : initialParams.goal_id;
+      if (!isNaN(goalIdNum)) {
+        setGoalId(goalIdNum);
+        // Reset category filter when filtering by goal
+        setSelectedCat('all');
+      }
+    } else {
+      // Clear goalId if not in initialParams
+      setGoalId(null);
+    }
+  }, [initialParams]);
+
   // Fetch products
   useEffect(() => {
     const fetchProducts = async () => {
@@ -63,6 +80,9 @@ const Shop: React.FC<ShopProps> = ({ onNavigate, initialParams }) => {
         }
         if (searchQuery) {
           params.search = searchQuery;
+        }
+        if (goalId) {
+          params.goal_id = goalId;
         }
         // Don't filter by price initially - show all products
         // Price filtering will be done on frontend
@@ -116,12 +136,14 @@ const Shop: React.FC<ShopProps> = ({ onNavigate, initialParams }) => {
     };
     
     fetchProducts();
-  }, [selectedCat, searchQuery, language]); // Removed priceRange - filtering is done on frontend
+  }, [selectedCat, searchQuery, language, goalId]); // Removed priceRange - filtering is done on frontend
 
+  // This useEffect is redundant now, but keeping it for other params
   useEffect(() => {
     if (initialParams?.category) setSelectedCat(initialParams.category);
     if (initialParams?.search) setSearchQuery(initialParams.search);
     if (initialParams?.wishlist) setShowOnlyWishlist(true);
+    // goal_id is handled in the separate useEffect above
   }, [initialParams]);
 
   const filteredProducts = products.filter(p => {
@@ -136,6 +158,9 @@ const Shop: React.FC<ShopProps> = ({ onNavigate, initialParams }) => {
     setPriceRange(maxPrice);
     setSearchQuery('');
     setShowOnlyWishlist(false);
+    setGoalId(null);
+    // Navigate to shop without goal_id to clear the filter
+    onNavigate('shop', {});
   };
 
   if (isLoading) {
@@ -182,7 +207,7 @@ const Shop: React.FC<ShopProps> = ({ onNavigate, initialParams }) => {
                 <Filter size={20} className="text-primary" />
                 <h3 className="font-black text-lg uppercase italic">{t('filterBy')}</h3>
               </div>
-              {(selectedCat !== 'all' || searchQuery || showOnlyWishlist) && (
+              {(selectedCat !== 'all' || searchQuery || showOnlyWishlist || goalId) && (
                 <button onClick={clearFilters} className="text-[10px] font-black text-primary uppercase hover:underline">{t('clearAll')}</button>
               )}
             </div>
@@ -259,6 +284,11 @@ const Shop: React.FC<ShopProps> = ({ onNavigate, initialParams }) => {
         <main className="flex-grow">
           <div className="flex flex-col sm:flex-row justify-between items-center bg-white p-5 rounded-3xl border border-gray-100 shadow-sm mb-8 gap-4">
             <div className="flex items-center gap-3">
+              {goalId && (
+                <div className="bg-primary/10 text-primary px-4 py-2 rounded-xl text-sm font-bold">
+                  {language === 'ar' ? 'منتجات مرتبطة بالهدف' : 'Goal Products'}
+                </div>
+              )}
               <p className="text-sm font-bold text-gray-400">
                 {language === 'ar' ? 'عرض' : 'Showing'} <span className="text-secondary font-black">{filteredProducts.length}</span> {language === 'ar' ? 'منتج' : 'products'}
               </p>

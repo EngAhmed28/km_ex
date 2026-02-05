@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
-import { goalsAPI, dashboardAPI } from '../utils/api';
-import { Target, Search, Edit, Trash2, Plus, CheckCircle, XCircle, Flame, Trophy, Zap } from 'lucide-react';
+import { goalsAPI, dashboardAPI, productsAPI } from '../utils/api';
+import { Target, Search, Edit, Trash2, Plus, CheckCircle, XCircle, Flame, Trophy, Zap, Package, X } from 'lucide-react';
 
 interface AdminGoalsProps {
   onNavigate: (page: string) => void;
@@ -35,6 +35,11 @@ const AdminGoals: React.FC<AdminGoalsProps> = ({ onNavigate }) => {
   const [canCreate, setCanCreate] = useState(false);
   const [canEdit, setCanEdit] = useState(false);
   const [canDelete, setCanDelete] = useState(false);
+  const [showProductsModal, setShowProductsModal] = useState(false);
+  const [selectedGoalForProducts, setSelectedGoalForProducts] = useState<Goal | null>(null);
+  const [allProducts, setAllProducts] = useState<any[]>([]);
+  const [selectedProductIds, setSelectedProductIds] = useState<number[]>([]);
+  const [loadingProducts, setLoadingProducts] = useState(false);
 
   const iconMap: { [key: string]: any } = {
     flame: Flame,
@@ -194,6 +199,69 @@ const AdminGoals: React.FC<AdminGoalsProps> = ({ onNavigate }) => {
     }
   };
 
+  const handleManageProducts = async (goal: Goal) => {
+    setSelectedGoalForProducts(goal);
+    setLoadingProducts(true);
+    try {
+      // Fetch all products
+      const productsResponse = await productsAPI.getAllProducts({ show_all: true });
+      if (productsResponse.success && productsResponse.data?.products) {
+        setAllProducts(productsResponse.data.products);
+      }
+
+      // Fetch linked products
+      const linkedResponse = await goalsAPI.getGoalProducts(goal.id);
+      if (linkedResponse.success && linkedResponse.data?.products) {
+        // Convert all IDs to numbers for consistent comparison
+        const linkedIds = linkedResponse.data.products.map((p: any) => {
+          const id = typeof p.id === 'string' ? parseInt(p.id) : p.id;
+          return isNaN(id) ? p.id : id;
+        });
+        setSelectedProductIds(linkedIds);
+      } else {
+        setSelectedProductIds([]);
+      }
+      setShowProductsModal(true);
+    } catch (err: any) {
+      alert(err.message || (language === 'ar' ? 'فشل تحميل المنتجات' : 'Failed to load products'));
+    } finally {
+      setLoadingProducts(false);
+    }
+  };
+
+  const handleSaveProducts = async () => {
+    if (!selectedGoalForProducts) return;
+
+    try {
+      // Ensure all IDs are numbers
+      const normalizedIds = selectedProductIds.map(id => typeof id === 'string' ? parseInt(id) : id).filter(id => !isNaN(id));
+      const response = await goalsAPI.updateGoalProducts(selectedGoalForProducts.id, normalizedIds);
+      if (response.success) {
+        setShowProductsModal(false);
+        setSelectedGoalForProducts(null);
+        alert(language === 'ar' ? 'تم حفظ المنتجات بنجاح' : 'Products saved successfully');
+      }
+    } catch (err: any) {
+      alert(err.message || (language === 'ar' ? 'فشل حفظ المنتجات' : 'Failed to save products'));
+    }
+  };
+
+  const toggleProductSelection = (productId: number | string) => {
+    const id = typeof productId === 'string' ? parseInt(productId) : productId;
+    setSelectedProductIds(prev => {
+      // Normalize all IDs to numbers for comparison
+      const normalizedPrev = prev.map(p => typeof p === 'string' ? parseInt(p) : p);
+      const normalizedId = typeof id === 'string' ? parseInt(id) : id;
+      
+      return normalizedPrev.includes(normalizedId)
+        ? normalizedPrev.filter(p => {
+            const normalizedP = typeof p === 'string' ? parseInt(p) : p;
+            return normalizedP !== normalizedId;
+          })
+        : [...normalizedPrev, normalizedId];
+    });
+  };
+
   const filteredGoals = goals.filter(goal =>
     goal.title_ar.toLowerCase().includes(searchTerm.toLowerCase()) ||
     goal.title_en.toLowerCase().includes(searchTerm.toLowerCase())
@@ -285,18 +353,29 @@ const AdminGoals: React.FC<AdminGoalsProps> = ({ onNavigate }) => {
                   )}
                 </div>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-500">{language === 'ar' ? 'ترتيب العرض:' : 'Display Order:'} {goal.display_order}</span>
-                <button
-                  onClick={() => handleToggleStatus(goal.id)}
-                  className={`p-2 rounded-xl transition-all ${
-                    goal.is_active
-                      ? 'bg-green-100 text-green-600 hover:bg-green-200'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
-                >
-                  {goal.is_active ? <CheckCircle size={20} /> : <XCircle size={20} />}
-                </button>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-500">{language === 'ar' ? 'ترتيب العرض:' : 'Display Order:'} {goal.display_order}</span>
+                  <button
+                    onClick={() => handleToggleStatus(goal.id)}
+                    className={`p-2 rounded-xl transition-all ${
+                      goal.is_active
+                        ? 'bg-green-100 text-green-600 hover:bg-green-200'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                  >
+                    {goal.is_active ? <CheckCircle size={20} /> : <XCircle size={20} />}
+                  </button>
+                </div>
+                {(currentUser?.role === 'admin' || canEdit) && (
+                  <button
+                    onClick={() => handleManageProducts(goal)}
+                    className="w-full bg-primary text-white px-4 py-2 rounded-xl font-bold hover:bg-secondary transition-all flex items-center justify-center gap-2"
+                  >
+                    <Package size={16} />
+                    {language === 'ar' ? 'إدارة المنتجات' : 'Manage Products'}
+                  </button>
+                )}
               </div>
             </div>
           );
@@ -471,6 +550,134 @@ const AdminGoals: React.FC<AdminGoalsProps> = ({ onNavigate }) => {
                 {language === 'ar' ? 'إلغاء' : 'Cancel'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Products Management Modal */}
+      {showProductsModal && selectedGoalForProducts && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-2xl font-black">
+                {language === 'ar' 
+                  ? `إدارة المنتجات - ${selectedGoalForProducts.title_ar}`
+                  : `Manage Products - ${selectedGoalForProducts.title_en}`
+                }
+              </h3>
+              <button
+                onClick={() => {
+                  setShowProductsModal(false);
+                  setSelectedGoalForProducts(null);
+                  setSelectedProductIds([]);
+                }}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-all"
+              >
+                <X size={24} />
+              </button>
+            </div>
+            
+            {loadingProducts ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="text-lg font-bold">{language === 'ar' ? 'جاري التحميل...' : 'Loading...'}</div>
+              </div>
+            ) : (
+              <>
+                <div className="flex-1 overflow-y-auto mb-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {allProducts.map((product) => {
+                      // Convert product.id to number for comparison (products from getAllProducts have id as string)
+                      const productId = typeof product.id === 'string' ? parseInt(product.id) : product.id;
+                      // Check if product is selected (handle both string and number IDs)
+                      const isSelected = selectedProductIds.some(id => {
+                        const normalizedId = typeof id === 'string' ? parseInt(id) : id;
+                        const normalizedProductId = typeof productId === 'string' ? parseInt(productId) : productId;
+                        return normalizedId === normalizedProductId;
+                      });
+                      return (
+                        <div
+                          key={product.id}
+                          onClick={() => toggleProductSelection(product.id)}
+                          className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                            isSelected
+                              ? 'border-primary bg-primary/10'
+                              : 'border-gray-200 hover:border-gray-300'
+                          }`}
+                        >
+                          <div className="flex items-start gap-3">
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => toggleProductSelection(productId)}
+                              className="mt-1 w-5 h-5"
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                            <div className="flex-1 min-w-0">
+                              <div className="font-bold text-sm mb-1">
+                                <div className="truncate" title={`${language === 'ar' 
+                                  ? (product.nameAr || product.name_ar || product.name || product.nameEn || product.name_en || `منتج #${product.id}`)
+                                  : (product.nameEn || product.name_en || product.name || product.nameAr || product.name_ar || `Product #${product.id}`)
+                                }${product.weight && !(product.nameAr || product.name_ar || product.name || product.nameEn || product.name_en || '').includes(product.weight) ? ` - ${product.weight}` : ''}`}>
+                                  {/* Display name based on current language */}
+                                  {(() => {
+                                    const productName = language === 'ar'
+                                      ? ((product.nameAr && product.nameAr.trim()) || 
+                                         (product.name_ar && product.name_ar.trim()) || 
+                                         (product.name && product.name.trim()) || 
+                                         (product.nameEn && product.nameEn.trim()) || 
+                                         (product.name_en && product.name_en.trim()) || 
+                                         `منتج #${product.id}`)
+                                      : ((product.nameEn && product.nameEn.trim()) || 
+                                         (product.name_en && product.name_en.trim()) || 
+                                         (product.name && product.name.trim()) || 
+                                         (product.nameAr && product.nameAr.trim()) || 
+                                         (product.name_ar && product.name_ar.trim()) || 
+                                         `Product #${product.id}`);
+                                    const weight = product.weight && product.weight.trim();
+                                    // Only add weight if it's not already in the product name
+                                    const nameIncludesWeight = weight && productName.includes(weight);
+                                    return nameIncludesWeight ? productName : (productName + (weight ? ` - ${weight}` : ''));
+                                  })()}
+                                </div>
+                              </div>
+                              <div className="text-xs text-gray-500 mb-1 font-mono">
+                                {product.category_slug || product.categorySlug || product.category || product.category_name_en || product.categoryNameEn || product.category_name || product.categoryName || (language === 'ar' ? 'بدون قسم' : 'No Category')}
+                              </div>
+                              <div className="text-xs font-semibold text-primary">
+                                {product.price ? `${product.price} ${language === 'ar' ? 'ج.م' : 'EGP'}` : (language === 'ar' ? 'لا يوجد سعر' : 'No Price')}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {allProducts.length === 0 && (
+                    <div className="text-center py-12 text-gray-500">
+                      {language === 'ar' ? 'لا توجد منتجات متاحة' : 'No products available'}
+                    </div>
+                  )}
+                </div>
+                <div className="flex gap-4 pt-4 border-t">
+                  <button
+                    onClick={handleSaveProducts}
+                    className="flex-1 bg-primary text-white px-6 py-3 rounded-xl font-bold hover:bg-secondary transition-all"
+                  >
+                    {language === 'ar' ? 'حفظ' : 'Save'}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowProductsModal(false);
+                      setSelectedGoalForProducts(null);
+                      setSelectedProductIds([]);
+                    }}
+                    className="flex-1 bg-gray-200 text-gray-700 px-6 py-3 rounded-xl font-bold hover:bg-gray-300 transition-all"
+                  >
+                    {language === 'ar' ? 'إلغاء' : 'Cancel'}
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
