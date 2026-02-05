@@ -179,10 +179,10 @@ export const createOrder = async (req, res) => {
         [orderId, item.product_id, item.quantity, item.price]
       );
       
-      // Update product stock
+      // Update product stock and sales count
       await connection.execute(
-        'UPDATE products SET stock = stock - ? WHERE id = ?',
-        [item.quantity, item.product_id]
+        'UPDATE products SET stock = stock - ?, sales_count = sales_count + ? WHERE id = ?',
+        [item.quantity, item.quantity, item.product_id]
       );
     }
     

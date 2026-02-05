@@ -33,6 +33,7 @@ export const getAllProducts = async (req, res) => {
         p.stock,
         p.rating,
         p.reviews_count,
+        p.sales_count,
         p.weight,
         p.flavors,
         p.nutrition,
@@ -181,6 +182,7 @@ export const getAllProducts = async (req, res) => {
         descriptionEn: product.description_en || product.description || '',
         rating: parseFloat(product.rating) || 0,
         reviewsCount: parseInt(product.reviews_count) || 0,
+        sales_count: parseInt(product.sales_count) || 0,
         weight: product.weight || '',
         // Keep original fields for backward compatibility
         name_ar: product.name_ar || product.name || '',

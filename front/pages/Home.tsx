@@ -295,125 +295,149 @@ const Home: React.FC<HomeProps> = ({ onNavigate }) => {
   return (
     <div className="space-y-24 pb-24">
       
-      {/* Hero Section - Clean Minimalist Design */}
-      <section className="relative bg-gray-900 text-white py-32 lg:py-40">
-        <div className="container mx-auto px-4 lg:px-6">
-          <div className="text-center space-y-6 max-w-4xl mx-auto">
-            {/* Main Title */}
-            <h1 className="text-5xl sm:text-6xl lg:text-7xl xl:text-8xl font-black uppercase leading-tight text-white">
+      {/* Hero Section - Premium Stylish Design */}
+      <section className="relative bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white py-32 lg:py-44 overflow-hidden">
+        {/* Background Pattern */}
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute inset-0" style={{
+            backgroundImage: `radial-gradient(circle at 25% 25%, #D31010 0%, transparent 50%),
+                              radial-gradient(circle at 75% 75%, #D31010 0%, transparent 50%)`
+          }}></div>
+        </div>
+        
+        {/* Animated Glow Behind Title */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] bg-primary/20 blur-[120px] rounded-full"></div>
+        
+        <div className="container mx-auto px-4 lg:px-6 relative z-10">
+          <div className="text-center space-y-8 max-w-5xl mx-auto">
+            {/* Main Title with Gradient and Glow */}
+            <h1 className="text-5xl sm:text-6xl lg:text-7xl xl:text-8xl font-black uppercase leading-[1.1] bg-gradient-to-r from-primary via-red-500 to-primary bg-clip-text text-transparent drop-shadow-[0_0_30px_rgba(211,16,16,0.5)] animate-pulse">
               {t('heroTitle')}
             </h1>
             
-            {/* Subtitle */}
-            <p className="text-lg lg:text-xl text-gray-400 font-normal max-w-2xl mx-auto leading-relaxed">
-              {language === 'ar' ? 'مش مكمل غذائي… دي نقطة التحول في مستواك' : 'Not just a supplement... This is your transformation point'}
+            {/* Decorative Line */}
+            <div className="flex items-center justify-center gap-4">
+              <div className="h-1 w-16 bg-gradient-to-r from-transparent to-primary rounded-full"></div>
+              <div className="w-3 h-3 bg-primary rotate-45"></div>
+              <div className="h-1 w-16 bg-gradient-to-l from-transparent to-primary rounded-full"></div>
+            </div>
+            
+            {/* Subtitle with Better Styling */}
+            <p className="text-xl lg:text-2xl text-gray-300 font-bold max-w-2xl mx-auto leading-relaxed tracking-wide">
+              <span className="text-primary">{language === 'ar' ? 'مش مكمل غذائي…' : 'Not just a supplement…'}</span>
+              <br />
+              <span className="text-white/80">{language === 'ar' ? 'دي نقطة التحول في مستواك' : 'This is your transformation point'}</span>
             </p>
+            
+            {/* CTA Button */}
+            <div className="pt-4">
+              <button 
+                onClick={() => onNavigate('shop')}
+                className="group relative bg-primary hover:bg-red-600 text-white font-black px-10 py-5 rounded-full uppercase tracking-wider text-lg shadow-[0_0_40px_rgba(211,16,16,0.4)] hover:shadow-[0_0_60px_rgba(211,16,16,0.6)] transition-all duration-300 transform hover:scale-105"
+              >
+                <span className="relative z-10 flex items-center gap-3">
+                  {language === 'ar' ? 'اكتشف المكملات' : 'Explore Supplements'}
+                  {language === 'ar' ? <ArrowLeft size={20} className="group-hover:-translate-x-2 transition-transform" /> : <ArrowRight size={20} className="group-hover:translate-x-2 transition-transform" />}
+                </span>
+              </button>
+            </div>
           </div>
         </div>
+        
+        {/* Bottom Gradient Fade */}
+        <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-gray-50 to-transparent"></div>
       </section>
 
-      {/* Brands Slider - Animated Premium Slider */}
-      {brands.length > 0 && (
-        <section className="container mx-auto px-4 overflow-hidden border-b border-gray-100 pb-20">
-          <div className="text-center mb-16">
-            <p className="text-primary font-black text-xs uppercase tracking-[0.5em] mb-4">{t('ourBrands')}</p>
-            <h2 className="text-4xl font-black italic uppercase tracking-tighter">{t('trustedBrands')}</h2>
+      {/* Shop By Goal - Now First */}
+      {goals.length > 0 && (
+        <section className="container mx-auto px-4">
+          <div className="text-center mb-8 md:mb-16">
+            <h2 className="text-3xl md:text-4xl lg:text-5xl font-black italic uppercase mb-4 tracking-tighter">{t('shopByGoal')}</h2>
+            <div className="w-16 md:w-24 h-1.5 md:h-2 bg-primary mx-auto rounded-full"></div>
           </div>
-          
-          {/* Slider Container */}
-          <div className="relative">
-            {/* Gradient Overlays for Smooth Edges */}
-            <div className="absolute left-0 top-0 bottom-0 w-32 bg-gradient-to-r from-white to-transparent z-10 pointer-events-none"></div>
-            <div className="absolute right-0 top-0 bottom-0 w-32 bg-gradient-to-l from-white to-transparent z-10 pointer-events-none"></div>
-            
-            {/* Infinite Scrolling Slider */}
-            <div className="overflow-hidden">
-              <div className={`flex gap-8 lg:gap-16 ${language === 'ar' ? 'animate-scroll-rtl' : 'animate-scroll-ltr'}`}>
-                {/* First Set */}
-                {brands.map((brand, i) => {
-                  const logoUrl = getLogoUrl(brand);
-                  const fallbackUrl = getFallbackLogoUrl(brand);
-                  const brandName = language === 'ar' ? brand.name : (brand.name_en || brand.name);
-                  
-                  return (
-                    <div key={`first-${brand.id}-${i}`} className="group flex flex-col items-center gap-4 shrink-0 transition-all duration-500">
-                      <div className="bg-white p-6 rounded-[2.5rem] shadow-xl border border-gray-100 group-hover:shadow-primary/20 group-hover:border-primary/50 group-hover:-translate-y-3 transition-all flex items-center justify-center w-36 h-28 lg:w-48 lg:h-36 relative overflow-hidden">
-                        {logoUrl ? (
-                          <img 
-                            src={logoUrl} 
-                            alt={brandName} 
-                            className="max-h-[85%] max-w-[85%] object-contain transition-all duration-500 group-hover:scale-110"
-                            onError={(e) => {
-                              const target = e.currentTarget;
-                              if (fallbackUrl && target.src !== fallbackUrl) {
-                                target.src = fallbackUrl;
-                              } else {
-                                target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(brandName)}&background=D31010&color=fff&size=200&bold=true`;
-                              }
-                            }}
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center bg-gray-100 rounded-xl">
-                            <span className="text-gray-400 text-xs font-bold">{brandName}</span>
-                          </div>
-                        )}
-                      </div>
-                      <span className="text-xs font-black uppercase text-gray-500 group-hover:text-primary tracking-widest opacity-60 group-hover:opacity-100 transition-all whitespace-nowrap">{brandName}</span>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8">
+            {goals.map((goal: any) => {
+              const IconComponent = goal.icon_name === 'flame' ? Flame :
+                                   goal.icon_name === 'target' ? Target :
+                                   goal.icon_name === 'zap' ? Zap :
+                                   goal.icon_name === 'trophy' ? Trophy : Target;
+              const goalTitle = language === 'ar' ? goal.title_ar : goal.title_en;
+              
+              return (
+                <div 
+                  key={goal.id}
+                  onClick={() => onNavigate('shop', { goal_id: goal.id })}
+                  className="group relative h-64 md:h-80 lg:h-96 rounded-[2rem] md:rounded-[3rem] lg:rounded-[3.5rem] overflow-hidden cursor-pointer shadow-lg md:shadow-xl hover:-translate-y-2 md:hover:-translate-y-4 transition-all duration-500"
+                >
+                  <div className={`absolute inset-0 ${goal.color_gradient} opacity-90 group-hover:opacity-100 transition-opacity`}></div>
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
+                  <div className="absolute inset-0 p-6 md:p-10 lg:p-12 flex flex-col justify-between text-white">
+                    <div className="bg-white/20 w-16 h-16 md:w-20 md:h-20 lg:w-24 lg:h-24 rounded-[1.5rem] md:rounded-[1.75rem] lg:rounded-[2rem] flex items-center justify-center backdrop-blur-md border border-white/30 group-hover:rotate-12 transition-transform shadow-lg md:shadow-xl">
+                      <IconComponent size={28} className="md:w-8 md:h-8 lg:w-10 lg:h-10" />
                     </div>
-                  );
-                })}
-                {/* Duplicate Set for Infinite Loop */}
-                {brands.map((brand, i) => {
-                  const logoUrl = getLogoUrl(brand);
-                  const fallbackUrl = getFallbackLogoUrl(brand);
-                  const brandName = language === 'ar' ? brand.name : (brand.name_en || brand.name);
-                  
-                  return (
-                    <div key={`second-${brand.id}-${i}`} className="group flex flex-col items-center gap-4 shrink-0 transition-all duration-500">
-                      <div className="bg-white p-6 rounded-[2.5rem] shadow-xl border border-gray-100 group-hover:shadow-primary/20 group-hover:border-primary/50 group-hover:-translate-y-3 transition-all flex items-center justify-center w-36 h-28 lg:w-48 lg:h-36 relative overflow-hidden">
-                        {logoUrl ? (
-                          <img 
-                            src={logoUrl} 
-                            alt={brandName} 
-                            className="max-h-[85%] max-w-[85%] object-contain transition-all duration-500 group-hover:scale-110"
-                            onError={(e) => {
-                              const target = e.currentTarget;
-                              if (fallbackUrl && target.src !== fallbackUrl) {
-                                target.src = fallbackUrl;
-                              } else {
-                                target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(brandName)}&background=D31010&color=fff&size=200&bold=true`;
-                              }
-                            }}
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center bg-gray-100 rounded-xl">
-                            <span className="text-gray-400 text-xs font-bold">{brandName}</span>
-                          </div>
-                        )}
+                    <div>
+                      <h3 className="text-2xl md:text-3xl lg:text-4xl font-black italic uppercase leading-none mb-2 md:mb-3">{goalTitle}</h3>
+                      <div className="flex items-center gap-2 overflow-hidden w-0 group-hover:w-full transition-all duration-500">
+                        <span className="text-[10px] font-black opacity-70 uppercase tracking-[0.2em] whitespace-nowrap">
+                          {language === 'ar' ? 'استكشف المنتجات' : 'Explore Products'}
+                        </span>
+                        {language === 'ar' ? <ArrowLeft size={14} className="text-white" /> : <ArrowRight size={14} className="text-white" />}
                       </div>
-                      <span className="text-xs font-black uppercase text-gray-500 group-hover:text-primary tracking-widest opacity-60 group-hover:opacity-100 transition-all whitespace-nowrap">{brandName}</span>
                     </div>
-                  );
-                })}
-              </div>
-            </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </section>
       )}
 
-      {/* Categories Sections */}
+      {/* Best Selling Products Section */}
+      {products.length > 0 && (
+        <section className="container mx-auto px-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between mb-8 md:mb-12 gap-4 border-r-4 md:border-r-8 border-primary pr-4 md:pr-6">
+            <div>
+              <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black italic uppercase tracking-tighter">
+                {language === 'ar' ? 'المنتجات الأكثر مبيعاً' : 'Best Selling Products'}
+              </h2>
+              <div className="w-16 md:w-24 h-1 md:h-1.5 bg-primary/20 mt-2 rounded-full"></div>
+            </div>
+            <button 
+              onClick={() => onNavigate('bestsellers')}
+              className="text-primary font-black uppercase italic text-sm hover:translate-x-[-10px] transition-transform flex items-center gap-2"
+            >
+              {language === 'ar' ? 'عرض الكل' : 'View All'}
+              {language === 'ar' ? <ArrowLeft size={18} /> : <ArrowRight size={18} />}
+            </button>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
+            {products
+              .sort((a, b) => (b.sales_count || 0) - (a.sales_count || 0))
+              .slice(0, 4)
+              .map((product) => (
+                <ProductCard 
+                  key={product.id} 
+                  product={product} 
+                  onClick={(id) => onNavigate('product', { id })}
+                  onAddToCart={handleAddToCart}
+                />
+              ))}
+          </div>
+        </section>
+      )}
+
       {!loading && categories.slice(0, 4).map((category) => {
         const categoryProducts = products.filter(p => p.category === category.slug || p.category_id === category.id);
         if (categoryProducts.length === 0) return null;
 
         return (
           <section key={category.id} className="container mx-auto px-4">
-            <div className="flex items-end justify-between mb-12 border-r-8 border-primary pr-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between mb-8 md:mb-12 gap-4 border-r-4 md:border-r-8 border-primary pr-4 md:pr-6">
               <div>
-                <h2 className="text-4xl lg:text-5xl font-black italic uppercase tracking-tighter">
+                <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black italic uppercase tracking-tighter">
                   {language === 'ar' ? category.nameAr : category.nameEn}
                 </h2>
-                <div className="w-24 h-1.5 bg-primary/20 mt-2 rounded-full"></div>
+                <div className="w-16 md:w-24 h-1 md:h-1.5 bg-primary/20 mt-2 rounded-full"></div>
               </div>
               <button 
                 onClick={() => onNavigate('shop', { category: category.slug })}
@@ -440,9 +464,8 @@ const Home: React.FC<HomeProps> = ({ onNavigate }) => {
       {/* Stats Section */}
       {stats.length > 0 && (
         <section className="container mx-auto px-4">
-          <div className="bg-accent/40 rounded-[4rem] p-12 lg:p-20 grid grid-cols-2 lg:grid-cols-4 gap-12 text-center border border-white shadow-inner">
+          <div className="bg-accent/40 rounded-[2rem] md:rounded-[4rem] p-6 md:p-12 lg:p-20 grid grid-cols-2 lg:grid-cols-4 gap-6 md:gap-12 text-center border border-white shadow-inner">
             {stats.slice(0, 4).map((stat: any, i: number) => {
-              // Map icon names to components
               const iconMap: { [key: string]: any } = {
                 'users': Users,
                 'shield': ShieldCheck,
@@ -456,56 +479,12 @@ const Home: React.FC<HomeProps> = ({ onNavigate }) => {
               const statLabel = language === 'ar' ? stat.stat_label_ar : stat.stat_label_en;
               
               return (
-                <div key={stat.id || i} className="space-y-2 group">
+                <div key={stat.id || i} className="space-y-1 md:space-y-2 group">
                   <div className="transform group-hover:scale-110 transition-transform duration-300">
-                    <IconComponent className="text-primary mx-auto mb-4" size={32} />
+                    <IconComponent className="text-primary mx-auto mb-2 md:mb-4" size={24} />
                   </div>
-                  <h3 className="text-4xl lg:text-5xl font-black italic text-secondary">{stat.stat_value}</h3>
-                  <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">{statLabel}</p>
-                </div>
-              );
-            })}
-          </div>
-        </section>
-      )}
-
-      {/* Shop By Goal */}
-      {goals.length > 0 && (
-        <section className="container mx-auto px-4">
-          <div className="text-center mb-16">
-            <h2 className="text-5xl font-black italic uppercase mb-4 tracking-tighter">{t('shopByGoal')}</h2>
-            <div className="w-24 h-2 bg-primary mx-auto rounded-full"></div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {goals.map((goal: any) => {
-              const IconComponent = goal.icon_name === 'flame' ? Flame :
-                                   goal.icon_name === 'target' ? Target :
-                                   goal.icon_name === 'zap' ? Zap :
-                                   goal.icon_name === 'trophy' ? Trophy : Target;
-              const goalTitle = language === 'ar' ? goal.title_ar : goal.title_en;
-              
-              return (
-                <div 
-                  key={goal.id}
-                  onClick={() => onNavigate('shop', { goal_id: goal.id })}
-                  className="group relative h-96 rounded-[3.5rem] overflow-hidden cursor-pointer shadow-xl hover:-translate-y-4 transition-all duration-500"
-                >
-                  <div className={`absolute inset-0 ${goal.color_gradient} opacity-90 group-hover:opacity-100 transition-opacity`}></div>
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
-                  <div className="absolute inset-0 p-12 flex flex-col justify-between text-white">
-                    <div className="bg-white/20 w-24 h-24 rounded-[2rem] flex items-center justify-center backdrop-blur-md border border-white/30 group-hover:rotate-12 transition-transform shadow-xl">
-                      <IconComponent size={40} />
-                    </div>
-                    <div>
-                      <h3 className="text-4xl font-black italic uppercase leading-none mb-3">{goalTitle}</h3>
-                      <div className="flex items-center gap-2 overflow-hidden w-0 group-hover:w-full transition-all duration-500">
-                        <span className="text-[10px] font-black opacity-70 uppercase tracking-[0.2em] whitespace-nowrap">
-                          {language === 'ar' ? 'استكشف المنتجات' : 'Explore Products'}
-                        </span>
-                        {language === 'ar' ? <ArrowLeft size={14} className="text-white" /> : <ArrowRight size={14} className="text-white" />}
-                      </div>
-                    </div>
-                  </div>
+                  <h3 className="text-2xl md:text-4xl lg:text-5xl font-black italic text-secondary">{stat.stat_value}</h3>
+                  <p className="text-[10px] md:text-xs font-bold text-gray-400 uppercase tracking-widest">{statLabel}</p>
                 </div>
               );
             })}
@@ -516,14 +495,14 @@ const Home: React.FC<HomeProps> = ({ onNavigate }) => {
       {/* Deal of the Day - From Database */}
       {activeDeal && (
         <section className="container mx-auto px-4">
-          <div className="bg-secondary text-white rounded-[5rem] p-10 lg:p-24 relative overflow-hidden flex flex-col lg:flex-row items-center gap-16 shadow-2xl">
-            <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-primary/10 rounded-full blur-[120px] -mr-40 -mt-40"></div>
+          <div className="bg-secondary text-white rounded-[3rem] md:rounded-[5rem] p-6 md:p-10 lg:p-24 relative overflow-hidden flex flex-col lg:flex-row items-center gap-8 md:gap-16 shadow-2xl">
+            <div className="absolute top-0 right-0 w-[300px] h-[300px] md:w-[600px] md:h-[600px] bg-primary/10 rounded-full blur-[60px] md:blur-[120px] -mr-20 md:-mr-40 -mt-20 md:-mt-40"></div>
             
-            <div className="flex-grow space-y-10 relative z-10 text-center lg:text-right">
-              <div className="inline-flex items-center gap-3 bg-primary px-6 py-2.5 rounded-[1.5rem] text-xs font-black uppercase italic">
-                <Flame size={18} fill="white" /> {t('dealOfTheDay')}
+            <div className="flex-grow space-y-6 md:space-y-10 relative z-10 text-center lg:text-right">
+              <div className="inline-flex items-center gap-3 bg-primary px-4 md:px-6 py-2 md:py-2.5 rounded-[1.5rem] text-[10px] md:text-xs font-black uppercase italic">
+                <Flame size={16} className="md:w-[18px] md:h-[18px]" fill="white" /> {t('dealOfTheDay')}
               </div>
-              <h2 className="text-5xl lg:text-8xl font-black italic uppercase leading-[0.85] tracking-tight">
+              <h2 className="text-3xl md:text-5xl lg:text-8xl font-black italic uppercase leading-[0.85] tracking-tight">
                 {language === 'ar' ? (
                   <>
                     {activeDeal.title_ar?.split(' ').map((word: string, i: number) => (
@@ -539,32 +518,32 @@ const Home: React.FC<HomeProps> = ({ onNavigate }) => {
                 )}
               </h2>
               {activeDeal.description_ar && (
-                <p className="text-lg lg:text-xl text-gray-300 font-bold">
+                <p className="text-sm md:text-lg lg:text-xl text-gray-300 font-bold">
                   {language === 'ar' ? activeDeal.description_ar : activeDeal.description_en}
                 </p>
               )}
               {activeDeal.discount_percentage && (
-                <div className="inline-block bg-primary/20 px-6 py-3 rounded-2xl border border-primary/30">
-                  <p className="text-3xl font-black">
+                <div className="inline-block bg-primary/20 px-4 md:px-6 py-2 md:py-3 rounded-xl md:rounded-2xl border border-primary/30">
+                  <p className="text-xl md:text-3xl font-black">
                     {language === 'ar' ? 'خصم' : 'Discount'} {activeDeal.discount_percentage}%
                   </p>
                 </div>
               )}
-              <div className="flex justify-center lg:justify-start gap-5 text-center">
+              <div className="flex justify-center lg:justify-start gap-3 md:gap-5 text-center">
                 {[
                   { val: countdown.hours, label: t('hours') },
                   { val: countdown.mins, label: t('minutes') },
                   { val: countdown.secs, label: t('seconds') }
                 ].map((c, i) => (
-                  <div key={i} className="bg-white/5 border border-white/10 rounded-[2rem] p-5 w-28 backdrop-blur-md">
-                    <p className="text-4xl font-black italic text-primary">{c.val}</p>
-                    <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">{c.label}</p>
+                  <div key={i} className="bg-white/5 border border-white/10 rounded-[1.5rem] md:rounded-[2rem] p-3 md:p-5 w-20 md:w-28 backdrop-blur-md">
+                    <p className="text-2xl md:text-4xl font-black italic text-primary">{c.val}</p>
+                    <p className="text-[8px] md:text-[10px] font-bold text-gray-500 uppercase tracking-widest">{c.label}</p>
                   </div>
                 ))}
               </div>
               <button 
                 onClick={() => activeDeal.product_id ? onNavigate('product', { id: activeDeal.product_id }) : onNavigate('shop')}
-                className="bg-white text-secondary font-black px-14 py-6 rounded-[2rem] hover:bg-primary hover:text-white transition-all uppercase italic text-xl shadow-2xl transform active:scale-95"
+                className="bg-white text-secondary font-black px-8 md:px-14 py-4 md:py-6 rounded-[1.5rem] md:rounded-[2rem] hover:bg-primary hover:text-white transition-all uppercase italic text-base md:text-xl shadow-2xl transform active:scale-95"
               >
                 {t('claimOffer')}
               </button>
@@ -598,6 +577,95 @@ const Home: React.FC<HomeProps> = ({ onNavigate }) => {
                   onError={(e) => (e.currentTarget.src = "https://images.unsplash.com/photo-1593095191850-2a7330053bb4?q=80&w=1000&auto=format&fit=crop")}
                 />
               )}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Brands Slider - At Bottom */}
+      {brands.length > 0 && (
+        <section className="container mx-auto px-4 overflow-hidden border-b border-gray-100 pb-12 md:pb-20">
+          <div className="text-center mb-8 md:mb-16">
+            <p className="text-primary font-black text-[10px] md:text-xs uppercase tracking-[0.3em] md:tracking-[0.5em] mb-2 md:mb-4">{t('ourBrands')}</p>
+            <h2 className="text-2xl md:text-4xl font-black italic uppercase tracking-tighter">{t('trustedBrands')}</h2>
+          </div>
+          
+          {/* Slider Container */}
+          <div className="relative">
+            {/* Gradient Overlays for Smooth Edges */}
+            <div className="absolute left-0 top-0 bottom-0 w-32 bg-gradient-to-r from-white to-transparent z-10 pointer-events-none"></div>
+            <div className="absolute right-0 top-0 bottom-0 w-32 bg-gradient-to-l from-white to-transparent z-10 pointer-events-none"></div>
+            
+            {/* Infinite Scrolling Slider */}
+            <div className="overflow-hidden">
+              <div className={`flex gap-8 lg:gap-16 ${language === 'ar' ? 'animate-scroll-rtl' : 'animate-scroll-ltr'}`}>
+                {/* First Set */}
+                {brands.map((brand, i) => {
+                  const logoUrl = getLogoUrl(brand);
+                  const fallbackUrl = getFallbackLogoUrl(brand);
+                  const brandName = language === 'ar' ? brand.name : (brand.name_en || brand.name);
+                  
+                  return (
+                    <div key={`first-${brand.id}-${i}`} className="group flex flex-col items-center gap-4 shrink-0 transition-all duration-500">
+                      <div className="bg-white p-4 md:p-6 rounded-[1.5rem] md:rounded-[2.5rem] shadow-lg md:shadow-xl border border-gray-100 group-hover:shadow-primary/20 group-hover:border-primary/50 group-hover:-translate-y-2 md:group-hover:-translate-y-3 transition-all flex items-center justify-center w-24 h-20 md:w-36 md:h-28 lg:w-48 lg:h-36 relative overflow-hidden">
+                        {logoUrl ? (
+                          <img 
+                            src={logoUrl} 
+                            alt={brandName} 
+                            className="max-h-[85%] max-w-[85%] object-contain transition-all duration-500 group-hover:scale-110"
+                            onError={(e) => {
+                              const target = e.currentTarget;
+                              if (fallbackUrl && target.src !== fallbackUrl) {
+                                target.src = fallbackUrl;
+                              } else {
+                                target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(brandName)}&background=D31010&color=fff&size=200&bold=true`;
+                              }
+                            }}
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center bg-gray-100 rounded-xl">
+                            <span className="text-gray-400 text-xs font-bold">{brandName}</span>
+                          </div>
+                        )}
+                      </div>
+                      <span className="text-xs font-black uppercase text-gray-500 group-hover:text-primary tracking-widest opacity-60 group-hover:opacity-100 transition-all whitespace-nowrap">{brandName}</span>
+                    </div>
+                  );
+                })}
+                {/* Duplicate Set for Infinite Loop */}
+                {brands.map((brand, i) => {
+                  const logoUrl = getLogoUrl(brand);
+                  const fallbackUrl = getFallbackLogoUrl(brand);
+                  const brandName = language === 'ar' ? brand.name : (brand.name_en || brand.name);
+                  
+                  return (
+                    <div key={`second-${brand.id}-${i}`} className="group flex flex-col items-center gap-4 shrink-0 transition-all duration-500">
+                      <div className="bg-white p-4 md:p-6 rounded-[1.5rem] md:rounded-[2.5rem] shadow-lg md:shadow-xl border border-gray-100 group-hover:shadow-primary/20 group-hover:border-primary/50 group-hover:-translate-y-2 md:group-hover:-translate-y-3 transition-all flex items-center justify-center w-24 h-20 md:w-36 md:h-28 lg:w-48 lg:h-36 relative overflow-hidden">
+                        {logoUrl ? (
+                          <img 
+                            src={logoUrl} 
+                            alt={brandName} 
+                            className="max-h-[85%] max-w-[85%] object-contain transition-all duration-500 group-hover:scale-110"
+                            onError={(e) => {
+                              const target = e.currentTarget;
+                              if (fallbackUrl && target.src !== fallbackUrl) {
+                                target.src = fallbackUrl;
+                              } else {
+                                target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(brandName)}&background=D31010&color=fff&size=200&bold=true`;
+                              }
+                            }}
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center bg-gray-100 rounded-xl">
+                            <span className="text-gray-400 text-xs font-bold">{brandName}</span>
+                          </div>
+                        )}
+                      </div>
+                      <span className="text-xs font-black uppercase text-gray-500 group-hover:text-primary tracking-widest opacity-60 group-hover:opacity-100 transition-all whitespace-nowrap">{brandName}</span>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
         </section>

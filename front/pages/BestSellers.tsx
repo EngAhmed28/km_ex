@@ -40,21 +40,17 @@ const BestSellers: React.FC<BestSellersProps> = ({ onNavigate }) => {
             };
           });
 
-          // Sort by rating and reviews count (best sellers)
+          // Sort by sales_count (actual best sellers)
           const sorted = [...formattedProducts]
-            .sort((a, b) => {
-              // Sort by rating first, then by reviews count
-              if (b.rating !== a.rating) return b.rating - a.rating;
-              return b.reviewsCount - a.reviewsCount;
-            })
+            .sort((a, b) => (b.sales_count || 0) - (a.sales_count || 0))
             .slice(0, 8); // Top 8 products
           
           setBestSellers(sorted);
 
-          // Recommended products (high rating with good reviews)
+          // Recommended products (high sales with good ratings)
           const recommendedProducts = [...formattedProducts]
-            .filter(p => p.rating >= 4.5 && p.reviewsCount >= 10)
-            .sort((a, b) => b.rating - a.rating)
+            .filter(p => (p.sales_count || 0) >= 5 && p.rating >= 4)
+            .sort((a, b) => (b.sales_count || 0) - (a.sales_count || 0))
             .slice(0, 8);
           
           setRecommended(recommendedProducts);
