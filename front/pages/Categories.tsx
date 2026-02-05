@@ -161,7 +161,7 @@ const Categories: React.FC<CategoriesProps> = ({ onNavigate }) => {
               className="aspect-[4/5] relative overflow-hidden bg-secondary"
               style={{
                 backgroundImage: cat.image_url ? `url(${cat.image_url})` : 'none',
-                backgroundSize: '75%',
+                backgroundSize: 'cover',
                 backgroundPosition: 'center',
                 backgroundRepeat: 'no-repeat',
                 filter: 'brightness(1.1) contrast(1.05)'

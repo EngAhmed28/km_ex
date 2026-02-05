@@ -534,7 +534,25 @@ const Checkout: React.FC<CheckoutProps> = ({ onNavigate }) => {
 
             {formData.paymentMethod !== 'cash_on_delivery' && (
               <div className="mt-6 bg-blue-50 border border-blue-200 rounded-xl p-4">
-                <p className="text-sm font-bold text-blue-800">{t('governorateShippingInfo')}</p>
+                <p className="text-sm font-bold text-blue-800 mb-2">{t('advancePayment')}</p>
+                {formData.paymentMethod === 'vodafone_cash' && siteSettings?.fawrycash_number && (
+                  <div className="mt-2 space-y-1">
+                    <p className="text-sm text-blue-700">
+                      {language === 'ar' ? 'رقم فودافون كاش:' : 'Vodafone Cash Number:'}
+                    </p>
+                    <p className="text-lg font-black text-blue-900" dir="ltr">{siteSettings.fawrycash_number}</p>
+                    <p className="text-xs text-blue-600 mt-2">{t('sendTransferOnWhatsapp')}</p>
+                  </div>
+                )}
+                {formData.paymentMethod === 'instapay' && siteSettings?.instapay_number && (
+                  <div className="mt-2 space-y-1">
+                    <p className="text-sm text-blue-700">
+                      {language === 'ar' ? 'رقم انستا باي:' : 'InstaPay Number:'}
+                    </p>
+                    <p className="text-lg font-black text-blue-900" dir="ltr">{siteSettings.instapay_number}</p>
+                    <p className="text-xs text-blue-600 mt-2">{t('sendTransferOnWhatsapp')}</p>
+                  </div>
+                )}
               </div>
             )}
           </div>

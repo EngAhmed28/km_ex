@@ -42,7 +42,7 @@ interface ProductDetailProps {
 
 const ProductDetail: React.FC<ProductDetailProps> = ({ id, onNavigate }) => {
   const { t, language } = useLanguage();
-  const { addToCart } = useCart();
+  const { addToCart, cart } = useCart();
   const { toggleWishlist, isInWishlist } = useWishlist();
   const { customerDiscount } = useDiscount();
   const { user } = useAuth();
@@ -164,6 +164,11 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ id, onNavigate }) => {
 
   const handleAddToCart = () => {
     if (!product) return;
+    const cartQty = getCartQuantity();
+    if (cartQty + quantity > product.stock) {
+      alert(language === 'ar' ? 'الكمية المطلوبة غير متوفرة في المخزون' : 'Requested quantity not available in stock');
+      return;
+    }
     setIsAdding(true);
     setTimeout(() => {
       addToCart(product, quantity, product.flavor && product.flavor.length > 0 ? product.flavor[0] : '');
@@ -171,6 +176,11 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ id, onNavigate }) => {
       setIsAdding(false);
       setIsAdded(true);
     }, 600);
+  };
+
+  const getCartQuantity = () => {
+    const cartItem = cart.find(item => item.id === product?.id);
+    return cartItem ? cartItem.quantity : 0;
   };
 
   const scroll = (direction: 'left' | 'right') => {
@@ -202,7 +212,20 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ id, onNavigate }) => {
                 if (imageUrl && !imageUrl.startsWith('http') && imageUrl.startsWith('/')) {
                   imageUrl = `${import.meta.env.VITE_API_URL || 'https://kingofmuscles.metacodecx.com'}${imageUrl}`;
                 }
-                return { ...p, image: imageUrl || '' };
+                return { 
+                  ...p, 
+                  image: imageUrl || '',
+                  nameAr: p.name_ar || p.name,
+                  nameEn: p.name_en || p.name,
+                  descriptionAr: p.description_ar || p.description,
+                  descriptionEn: p.description_en || p.description,
+                  rating: p.average_rating || 0,
+                  reviewsCount: p.reviews_count || 0,
+                  oldPrice: p.old_price || null,
+                  weight: p.weight || '',
+                  flavor: p.flavors ? p.flavors.split(',') : [],
+                  stock: p.stock || 0
+                };
               });
             setSimilarProducts(similar);
           }
@@ -397,15 +420,6 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ id, onNavigate }) => {
                   </div>
                 </div>
               )}
-              {product.stock > 0 && (
-                <div className="flex items-center gap-3 p-4 bg-accent/50 rounded-2xl">
-                  <Check size={20} className="text-green-500" />
-                  <div>
-                    <p className="text-xs font-black uppercase text-gray-500">{language === 'ar' ? 'المتاح' : 'In Stock'}</p>
-                    <p className="text-sm font-bold text-green-600">{product.stock} {language === 'ar' ? 'قطعة' : 'items'}</p>
-                  </div>
-                </div>
-              )}
             </div>
 
             {/* Flavor Selection */}
@@ -426,7 +440,19 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ id, onNavigate }) => {
               <div className="flex items-center bg-accent rounded-[2rem] p-2 shadow-inner border border-gray-100 h-20 sm:w-56 shrink-0">
                 <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="w-16 h-full flex items-center justify-center hover:bg-white rounded-[1.5rem] transition-all"><Minus size={22}/></button>
                 <span className="w-full text-center font-black text-3xl italic">{quantity}</span>
-                <button onClick={() => setQuantity(quantity + 1)} className="w-16 h-full flex items-center justify-center hover:bg-white rounded-[1.5rem] transition-all"><Plus size={22}/></button>
+                {(() => {
+                  const availableStock = product.stock - getCartQuantity();
+                  const canIncrease = quantity < availableStock;
+                  return (
+                    <button 
+                      onClick={() => setQuantity(Math.min(availableStock, quantity + 1))} 
+                      disabled={!canIncrease} 
+                      className="w-16 h-full flex items-center justify-center hover:bg-white rounded-[1.5rem] transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                    >
+                      <Plus size={22}/>
+                    </button>
+                  );
+                })()}
               </div>
 
               <button 

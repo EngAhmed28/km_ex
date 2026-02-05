@@ -81,14 +81,18 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onClick, onAddToCart
 
       <div className="p-5 flex-grow flex flex-col">
         <div className="flex items-center gap-1 mb-2">
-          <Star className="text-yellow-400 fill-yellow-400" size={14} />
           <span className="text-xs font-bold text-gray-700">{product.rating}</span>
-          <span className="text-[10px] text-gray-400">({product.reviewsCount} تقييم)</span>
+          <Star className="text-yellow-400 fill-yellow-400" size={14} />
+          <div className="h-3 w-px bg-gray-300 mx-1"></div>
+          <span className="text-[10px] text-gray-400">{product.reviewsCount} {language === 'ar' ? 'تقييمات العملاء' : 'Customer Reviews'}</span>
         </div>
         
-        <h3 className="font-bold text-sm md:text-base mb-3 group-hover:text-primary transition-colors line-clamp-2 leading-snug h-10 md:h-12">
+        <h3 className="font-bold text-sm md:text-base mb-1 group-hover:text-primary transition-colors line-clamp-2 leading-snug">
           {language === 'ar' ? product.nameAr : product.nameEn}
         </h3>
+        <p className="text-xs text-gray-500 line-clamp-2 mb-3 leading-relaxed">
+          {language === 'ar' ? product.descriptionAr : product.descriptionEn}
+        </p>
 
         <div className="mt-auto pt-4 flex items-center justify-between border-t border-gray-50">
           <div className="flex flex-col">

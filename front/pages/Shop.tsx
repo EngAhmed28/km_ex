@@ -78,8 +78,18 @@ const Shop: React.FC<ShopProps> = ({ onNavigate, initialParams }) => {
               imageUrl = `${import.meta.env.VITE_API_URL || 'https://kingofmuscles.metacodecx.com'}${imageUrl}`;
             }
             return {
-              ...product,
-              image: imageUrl
+              ...product,  // Preserve all fields from API (like ProductDetail)
+              nameAr: product.name_ar || product.name,
+              nameEn: product.name_en || product.name,
+              descriptionAr: product.description_ar || product.description,
+              descriptionEn: product.description_en || product.description,
+              image: imageUrl,
+              rating: product.average_rating || product.rating || 0,
+              reviewsCount: product.reviews_count || product.reviewsCount || 0,
+              oldPrice: product.old_price || null,
+              weight: product.weight || '',
+              flavor: product.flavors ? product.flavors.split(',') : [],
+              stock: product.stock || 0
             };
           });
           setProducts(formattedProducts);
